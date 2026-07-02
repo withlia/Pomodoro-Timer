@@ -373,6 +373,16 @@ p {
   color: #8f7b70;
 }
 
+.theme-button {
+  min-width: 132px;
+}
+
+.form-message {
+  color: #9d6b5e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .app-shell[data-theme="dark"] {
   color: #ede4da;
   background:
@@ -447,7 +457,8 @@ p {
 .app-shell[data-theme="dark"] .timer-display p,
 .app-shell[data-theme="dark"] .task-item span,
 .app-shell[data-theme="dark"] .task-item p,
-.app-shell[data-theme="dark"] .settings-grid label {
+.app-shell[data-theme="dark"] .settings-grid label,
+.app-shell[data-theme="dark"] .form-message {
   color: #c9bac9;
 }
 

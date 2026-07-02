@@ -13,6 +13,9 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
           <p className="eyebrow">Config</p>
           <h2>设置</h2>
         </div>
+        <button className="theme-button" onClick={() => updateSetting('theme', settings.theme === 'dark' ? 'light' : 'dark')}>
+          {settings.theme === 'dark' ? '切换日间模式' : '切换夜间模式'}
+        </button>
       </div>
       <div className="settings-grid">
         <label>
@@ -34,10 +37,6 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
         <label className="toggle-line">
           <input type="checkbox" checked={settings.autoStartBreak} onChange={(event) => updateSetting('autoStartBreak', event.target.checked)} />
           自动开始休息
-        </label>
-        <label className="toggle-line">
-          <input type="checkbox" checked={settings.theme === 'dark'} onChange={(event) => updateSetting('theme', event.target.checked ? 'dark' : 'light')} />
-          夜间模式
         </label>
       </div>
     </section>

@@ -64,8 +64,11 @@ async function selectAppFile() {
     title: '选择要屏蔽的应用',
     properties: ['openFile'] as Array<'openFile'>,
     filters: process.platform === 'win32'
-      ? [{ name: '应用程序', extensions: ['exe'] }]
-      : [{ name: '应用程序', extensions: ['app', '*'] }]
+      ? [
+          { name: '应用程序', extensions: ['exe', 'lnk', 'bat', 'cmd'] },
+          { name: '所有文件', extensions: ['*'] }
+        ]
+      : [{ name: '所有文件', extensions: ['*'] }]
   }
   const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options)
 

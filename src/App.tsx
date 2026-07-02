@@ -18,7 +18,8 @@ function App() {
   const [siteInput, setSiteInput] = useState('')
   const [appNameInput, setAppNameInput] = useState('')
   const [processInput, setProcessInput] = useState('')
-  const [appPathInput, setAppPathInput] = useState<string | undefined>()
+  const [appPathInput, setAppPathInput] = useState('')
+  const [appSelectMessage, setAppSelectMessage] = useState('')
   const [platform, setPlatform] = useState('browser')
   const [blockerMessage, setBlockerMessage] = useState('屏蔽未启用')
   const [tasks, setTasks] = useState<Task[]>(() => readStorage('tasks', initialTasks))
@@ -115,22 +116,56 @@ function App() {
     setSiteInput('')
   }
 
+  function parseAppPath(value: string) {
+    const filePath = value.trim().replace(/^"|"$/g, '')
+    const processName = filePath.split(/[\\/]/).pop() ?? filePath
+    const name = processName.replace(/\.[^.]+$/, '') || processName
+    return { filePath, processName, name }
+  }
+
+  function updateAppPathInput(value: string) {
+    setAppPathInput(value)
+    const parsed = parseAppPath(value)
+    if (parsed.filePath && !appNameInput) setAppNameInput(parsed.name)
+    if (parsed.filePath && !processInput) setProcessInput(parsed.processName)
+  }
+
   async function selectApp() {
-    const selected = await window.pixelPomodoro?.selectBlockedApp()
-    if (!selected) return
-    setAppNameInput(selected.name)
-    setProcessInput(selected.processName)
-    setAppPathInput(selected.filePath)
+    if (!window.pixelPomodoro?.selectBlockedApp) {
+      setAppSelectMessage('请在桌面应用窗口中选择')
+      return
+    }
+
+    try {
+      setAppSelectMessage('正在打开选择窗口...')
+      const selected = await window.pixelPomodoro.selectBlockedApp()
+      if (!selected) {
+        setAppSelectMessage('已取消选择')
+        return
+      }
+      setAppNameInput(selected.name)
+      setProcessInput(selected.processName)
+      setAppPathInput(selected.filePath)
+      setAppSelectMessage('已选择应用')
+    } catch {
+      setAppSelectMessage('选择失败，请直接粘贴应用路径')
+    }
   }
 
   function addApp() {
-    const name = appNameInput.trim()
-    const processName = processInput.trim()
-    if (!name || !processName) return
-    setBlockedApps((current) => [{ id: Date.now(), name, processName, filePath: appPathInput, action: 'warn', enabled: true }, ...current])
+    const parsed = appPathInput ? parseAppPath(appPathInput) : null
+    const name = appNameInput.trim() || parsed?.name || ''
+    const processName = processInput.trim() || parsed?.processName || ''
+    const filePath = parsed?.filePath || undefined
+    if (!name || !processName) {
+      setAppSelectMessage('请选择应用或输入应用路径')
+      return
+    }
+    setBlockedApps((current) => [{ id: Date.now(), name, processName, filePath, action: 'warn', enabled: true }, ...current])
     setAppNameInput('')
     setProcessInput('')
-    setAppPathInput(undefined)
+    setAppPathInput('')
+    setAppSelectMessage('已添加应用')
   }
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
@@ -157,7 +192,7 @@ function App() {
           <div className="pixel-panel stat-card"><span>启用屏蔽</span><strong>{activeBlockCount}</strong></div>
         </section>
         <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} setNewTaskTitle={setNewTaskTitle} setSelectedTaskId={setSelectedTaskId} addTask={addTask} />
-        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appNameInput={appNameInput} processInput={processInput} setSiteInput={setSiteInput} setAppNameInput={setAppNameInput} setProcessInput={setProcessInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} addApp={addApp} selectApp={selectApp} />
+        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appNameInput={appNameInput} processInput={processInput} appPathInput={appPathInput} appSelectMessage={appSelectMessage} setSiteInput={setSiteInput} setAppNameInput={setAppNameInput} setProcessInput={setProcessInput} setAppPathInput={updateAppPathInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} addApp={addApp} selectApp={selectApp} />
         <StatsPanel tasks={tasks} />
         <SettingsPanel settings={settings} updateSetting={updateSetting} />
       </section>
