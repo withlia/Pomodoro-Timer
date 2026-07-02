@@ -293,6 +293,17 @@ p {
   color: #8f7b70;
 }
 
+.task-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.task-actions button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
 .two-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;

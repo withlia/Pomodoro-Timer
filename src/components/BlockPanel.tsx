@@ -4,18 +4,11 @@ type Props = {
   blockedSites: BlockedSite[]
   blockedApps: BlockedApp[]
   siteInput: string
-  appNameInput: string
-  processInput: string
-  appPathInput: string
   appSelectMessage: string
   setSiteInput: (value: string) => void
-  setAppNameInput: (value: string) => void
-  setProcessInput: (value: string) => void
-  setAppPathInput: (value: string) => void
   setBlockedSites: (updater: (current: BlockedSite[]) => BlockedSite[]) => void
   setBlockedApps: (updater: (current: BlockedApp[]) => BlockedApp[]) => void
   addSite: () => void
-  addApp: () => void
   selectApp: () => void
 }
 
@@ -47,11 +40,7 @@ export function BlockPanel(props: Props) {
         <div>
           <h3>软件</h3>
           <div className="inline-form stacked">
-            <button onClick={props.selectApp}>从本地选择应用</button>
-            <input value={props.appPathInput} onChange={(event) => props.setAppPathInput(event.target.value)} placeholder="应用路径，例如 C:\\Program Files\\App\\app.exe" />
-            <input value={props.appNameInput} onChange={(event) => props.setAppNameInput(event.target.value)} placeholder="软件名" />
-            <input value={props.processInput} onChange={(event) => props.setProcessInput(event.target.value)} placeholder="进程名.exe" />
-            <button onClick={props.addApp}>添加</button>
+            <button onClick={props.selectApp}>选择并添加本地应用</button>
             {props.appSelectMessage && <p className="form-message">{props.appSelectMessage}</p>}
           </div>
           <div className="mini-list">

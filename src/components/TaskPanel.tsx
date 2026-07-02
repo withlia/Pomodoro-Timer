@@ -7,6 +7,7 @@ type Props = {
   setNewTaskTitle: (value: string) => void
   setSelectedTaskId: (id: number) => void
   addTask: () => void
+  deleteTask: (id: number) => void
 }
 
 export function TaskPanel(props: Props) {
@@ -29,7 +30,10 @@ export function TaskPanel(props: Props) {
               <strong>{task.title}</strong>
               <span>{task.status === 'todo' ? '待办' : task.status === 'doing' ? '进行中' : '已完成'}</span>
             </div>
-            <p>{task.completedPomodoros}/{task.estimatedPomodoros}</p>
+            <div className="task-actions">
+              <p>{task.completedPomodoros}/{task.estimatedPomodoros}</p>
+              <button onClick={(event) => { event.stopPropagation(); props.deleteTask(task.id) }}>删除</button>
+            </div>
           </article>
         ))}
       </div>

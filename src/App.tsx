@@ -16,9 +16,6 @@ function App() {
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(1)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [siteInput, setSiteInput] = useState('')
-  const [appNameInput, setAppNameInput] = useState('')
-  const [processInput, setProcessInput] = useState('')
-  const [appPathInput, setAppPathInput] = useState('')
   const [appSelectMessage, setAppSelectMessage] = useState('')
   const [platform, setPlatform] = useState('browser')
   const [blockerMessage, setBlockerMessage] = useState('屏蔽未启用')
@@ -109,25 +106,18 @@ function App() {
     setNewTaskTitle('')
   }
 
+  function deleteTask(id: number) {
+    setTasks((current) => current.filter((task) => task.id !== id))
+    if (selectedTaskId === id) {
+      setSelectedTaskId(null)
+    }
+  }
+
   function addSite() {
     const domain = siteInput.trim().replace(/^https?:\/\//, '').replace(/\/.*/, '')
     if (!domain) return
     setBlockedSites((current) => [{ id: Date.now(), domain, enabled: true }, ...current])
     setSiteInput('')
-  }
-
-  function parseAppPath(value: string) {
-    const filePath = value.trim().replace(/^"|"$/g, '')
-    const processName = filePath.split(/[\\/]/).pop() ?? filePath
-    const name = processName.replace(/\.[^.]+$/, '') || processName
-    return { filePath, processName, name }
-  }
-
-  function updateAppPathInput(value: string) {
-    setAppPathInput(value)
-    const parsed = parseAppPath(value)
-    if (parsed.filePath && !appNameInput) setAppNameInput(parsed.name)
-    if (parsed.filePath && !processInput) setProcessInput(parsed.processName)
   }
 
   async function selectApp() {
@@ -143,29 +133,21 @@ function App() {
         setAppSelectMessage('已取消选择')
         return
       }
-      setAppNameInput(selected.name)
-      setProcessInput(selected.processName)
-      setAppPathInput(selected.filePath)
-      setAppSelectMessage('已选择应用')
+      setBlockedApps((current) => [
+        {
+          id: Date.now(),
+          name: selected.name,
+          processName: selected.processName,
+          filePath: selected.filePath,
+          action: 'warn',
+          enabled: true
+        },
+        ...current
+      ])
+      setAppSelectMessage('已添加应用')
     } catch {
-      setAppSelectMessage('选择失败，请直接粘贴应用路径')
+      setAppSelectMessage('选择失败，请重试')
     }
-  }
-
-  function addApp() {
-    const parsed = appPathInput ? parseAppPath(appPathInput) : null
-    const name = appNameInput.trim() || parsed?.name || ''
-    const processName = processInput.trim() || parsed?.processName || ''
-    const filePath = parsed?.filePath || undefined
-    if (!name || !processName) {
-      setAppSelectMessage('请选择应用或输入应用路径')
-      return
-    }
-    setBlockedApps((current) => [{ id: Date.now(), name, processName, filePath, action: 'warn', enabled: true }, ...current])
-    setAppNameInput('')
-    setProcessInput('')
-    setAppPathInput('')
-    setAppSelectMessage('已添加应用')
   }
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
@@ -191,8 +173,8 @@ function App() {
           <div className="pixel-panel stat-card"><span>专注分钟</span><strong>{totalMinutes}</strong></div>
           <div className="pixel-panel stat-card"><span>启用屏蔽</span><strong>{activeBlockCount}</strong></div>
         </section>
-        <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} setNewTaskTitle={setNewTaskTitle} setSelectedTaskId={setSelectedTaskId} addTask={addTask} />
-        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appNameInput={appNameInput} processInput={processInput} appPathInput={appPathInput} appSelectMessage={appSelectMessage} setSiteInput={setSiteInput} setAppNameInput={setAppNameInput} setProcessInput={setProcessInput} setAppPathInput={updateAppPathInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} addApp={addApp} selectApp={selectApp} />
+        <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} setNewTaskTitle={setNewTaskTitle} setSelectedTaskId={setSelectedTaskId} addTask={addTask} deleteTask={deleteTask} />
+        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appSelectMessage={appSelectMessage} setSiteInput={setSiteInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} selectApp={selectApp} />
         <StatsPanel tasks={tasks} />
         <SettingsPanel settings={settings} updateSetting={updateSetting} />
       </section>
