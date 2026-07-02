@@ -373,6 +373,103 @@ p {
   color: #8f7b70;
 }
 
+.app-shell[data-theme="dark"] {
+  color: #ede4da;
+  background:
+    linear-gradient(90deg, rgba(255, 232, 214, 0.06) 1px, transparent 1px),
+    linear-gradient(rgba(255, 232, 214, 0.06) 1px, transparent 1px),
+    #221f2e;
+  background-size: 20px 20px;
+}
+
+.app-shell[data-theme="dark"] button,
+.app-shell[data-theme="dark"] select,
+.app-shell[data-theme="dark"] input {
+  border-color: #8f7a8c;
+  background: #312d40;
+  color: #f4eadf;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.app-shell[data-theme="dark"] button:hover,
+.app-shell[data-theme="dark"] button.active,
+.app-shell[data-theme="dark"] button.primary {
+  background: #d89a8b;
+  border-color: #e7b6a9;
+  color: #281f2d;
+}
+
+.app-shell[data-theme="dark"] .pixel-panel {
+  border-color: #706077;
+  background: rgba(45, 41, 58, 0.94);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.24);
+}
+
+.app-shell[data-theme="dark"] .sidebar {
+  background: #2a2638;
+}
+
+.app-shell[data-theme="dark"] .sidebar h1,
+.app-shell[data-theme="dark"] .section-title h2,
+.app-shell[data-theme="dark"] .timer-display strong {
+  color: #fff2e6;
+}
+
+.app-shell[data-theme="dark"] .eyebrow,
+.app-shell[data-theme="dark"] .timer-display span,
+.app-shell[data-theme="dark"] .two-columns h3,
+.app-shell[data-theme="dark"] .bar-chart em {
+  color: #e6ad9f;
+}
+
+.app-shell[data-theme="dark"] .sidebar nav a,
+.app-shell[data-theme="dark"] .system-card,
+.app-shell[data-theme="dark"] .task-item,
+.app-shell[data-theme="dark"] .mini-list label,
+.app-shell[data-theme="dark"] .toggle-line {
+  border-color: #706077;
+  background: #312d40;
+}
+
+.app-shell[data-theme="dark"] .sidebar nav a:hover,
+.app-shell[data-theme="dark"] .task-item.selected {
+  background: #44354a;
+  border-color: #d89a8b;
+}
+
+.app-shell[data-theme="dark"] .hero-card {
+  background: linear-gradient(180deg, #312d40 0%, #282434 100%);
+}
+
+.app-shell[data-theme="dark"] .system-card span,
+.app-shell[data-theme="dark"] .stat-card span,
+.app-shell[data-theme="dark"] .system-card small,
+.app-shell[data-theme="dark"] .timer-display p,
+.app-shell[data-theme="dark"] .task-item span,
+.app-shell[data-theme="dark"] .task-item p,
+.app-shell[data-theme="dark"] .settings-grid label {
+  color: #c9bac9;
+}
+
+.app-shell[data-theme="dark"] .stat-card strong {
+  color: #f0b3a6;
+}
+
+.app-shell[data-theme="dark"] .timer-display strong {
+  text-shadow: 4px 4px 0 #493240;
+}
+
+.app-shell[data-theme="dark"] .progress-track,
+.app-shell[data-theme="dark"] .bar-chart div div {
+  border-color: #706077;
+  background: #242130;
+}
+
+.app-shell[data-theme="dark"] .progress-track div,
+.app-shell[data-theme="dark"] .bar-chart i {
+  background: repeating-linear-gradient(90deg, #d89a8b 0 14px, #c78378 14px 28px);
+}
+
 @media (max-width: 1050px) {
   .content-grid,
   .two-columns,

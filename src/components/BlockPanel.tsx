@@ -13,6 +13,7 @@ type Props = {
   setBlockedApps: (updater: (current: BlockedApp[]) => BlockedApp[]) => void
   addSite: () => void
   addApp: () => void
+  selectApp: () => void
 }
 
 export function BlockPanel(props: Props) {
@@ -43,6 +44,7 @@ export function BlockPanel(props: Props) {
         <div>
           <h3>软件</h3>
           <div className="inline-form stacked">
+            <button onClick={props.selectApp}>从本地选择应用</button>
             <input value={props.appNameInput} onChange={(event) => props.setAppNameInput(event.target.value)} placeholder="软件名" />
             <input value={props.processInput} onChange={(event) => props.setProcessInput(event.target.value)} placeholder="进程名.exe" />
             <button onClick={props.addApp}>添加</button>

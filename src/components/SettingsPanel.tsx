@@ -35,6 +35,10 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
           <input type="checkbox" checked={settings.autoStartBreak} onChange={(event) => updateSetting('autoStartBreak', event.target.checked)} />
           自动开始休息
         </label>
+        <label className="toggle-line">
+          <input type="checkbox" checked={settings.theme === 'dark'} onChange={(event) => updateSetting('theme', event.target.checked ? 'dark' : 'light')} />
+          夜间模式
+        </label>
       </div>
     </section>
   )

@@ -4,13 +4,13 @@ import { SettingsPanel } from './components/SettingsPanel'
 import { StatsPanel } from './components/StatsPanel'
 import { TaskPanel } from './components/TaskPanel'
 import { TimerPanel } from './components/TimerPanel'
-import { defaultSettings, getInitialSeconds, initialApps, initialSites, initialTasks, readStorage } from './data'
+import { getInitialSeconds, initialApps, initialSites, initialTasks, readSettings, readStorage } from './data'
 import type { BlockedApp, BlockedSite, FocusSession, Settings, Task, TimerMode } from './types'
 
 function App() {
-  const [settings, setSettings] = useState<Settings>(() => readStorage('settings', defaultSettings))
+  const [settings, setSettings] = useState<Settings>(() => readSettings())
   const [mode, setMode] = useState<TimerMode>('focus')
-  const [timeLeft, setTimeLeft] = useState(() => getInitialSeconds('focus', readStorage('settings', defaultSettings)))
+  const [timeLeft, setTimeLeft] = useState(() => getInitialSeconds('focus', readSettings()))
   const [isRunning, setIsRunning] = useState(false)
   const [completedFocusCount, setCompletedFocusCount] = useState(0)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(1)
@@ -18,6 +18,7 @@ function App() {
   const [siteInput, setSiteInput] = useState('')
   const [appNameInput, setAppNameInput] = useState('')
   const [processInput, setProcessInput] = useState('')
+  const [appPathInput, setAppPathInput] = useState<string | undefined>()
   const [platform, setPlatform] = useState('browser')
   const [blockerMessage, setBlockerMessage] = useState('屏蔽未启用')
   const [tasks, setTasks] = useState<Task[]>(() => readStorage('tasks', initialTasks))
@@ -114,26 +115,35 @@ function App() {
     setSiteInput('')
   }
 
+  async function selectApp() {
+    const selected = await window.pixelPomodoro?.selectBlockedApp()
+    if (!selected) return
+    setAppNameInput(selected.name)
+    setProcessInput(selected.processName)
+    setAppPathInput(selected.filePath)
+  }
+
   function addApp() {
     const name = appNameInput.trim()
     const processName = processInput.trim()
     if (!name || !processName) return
-    setBlockedApps((current) => [{ id: Date.now(), name, processName, action: 'warn', enabled: true }, ...current])
+    setBlockedApps((current) => [{ id: Date.now(), name, processName, filePath: appPathInput, action: 'warn', enabled: true }, ...current])
     setAppNameInput('')
     setProcessInput('')
+    setAppPathInput(undefined)
   }
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const next = { ...settings, [key]: value }
     setSettings(next)
-    if (key !== 'autoStartBreak') {
+    if (key !== 'autoStartBreak' && key !== 'theme') {
       setIsRunning(false)
       setTimeLeft(getInitialSeconds(mode, next))
     }
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={settings.theme}>
       <aside className="sidebar pixel-panel">
         <div><p className="eyebrow">Pixel Pomodoro</p><h1>像素番茄钟</h1></div>
         <nav><a href="#timer">计时</a><a href="#tasks">任务</a><a href="#blocks">屏蔽</a><a href="#stats">统计</a><a href="#settings">设置</a></nav>
@@ -147,7 +157,7 @@ function App() {
           <div className="pixel-panel stat-card"><span>启用屏蔽</span><strong>{activeBlockCount}</strong></div>
         </section>
         <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} setNewTaskTitle={setNewTaskTitle} setSelectedTaskId={setSelectedTaskId} addTask={addTask} />
-        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appNameInput={appNameInput} processInput={processInput} setSiteInput={setSiteInput} setAppNameInput={setAppNameInput} setProcessInput={setProcessInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} addApp={addApp} />
+        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appNameInput={appNameInput} processInput={processInput} setSiteInput={setSiteInput} setAppNameInput={setAppNameInput} setProcessInput={setProcessInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} addApp={addApp} selectApp={selectApp} />
         <StatsPanel tasks={tasks} />
         <SettingsPanel settings={settings} updateSetting={updateSetting} />
       </section>

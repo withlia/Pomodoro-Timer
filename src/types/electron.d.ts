@@ -11,6 +11,7 @@ declare global {
       }>
       applyHostBlock: (domains: string[]) => Promise<{ ok: boolean; entries: number; hostsPath: string }>
       clearHostBlock: () => Promise<{ ok: boolean; hostsPath: string }>
+      selectBlockedApp: () => Promise<{ name: string; processName: string; filePath: string } | null>
     }
   }
 }

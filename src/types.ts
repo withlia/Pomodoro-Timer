@@ -28,6 +28,7 @@ export type BlockedApp = {
   id: number
   name: string
   processName: string
+  filePath?: string
   action: BlockAction
   enabled: boolean
 }
@@ -38,4 +39,5 @@ export type Settings = {
   longBreakMinutes: number
   longBreakInterval: number
   autoStartBreak: boolean
+  theme: 'light' | 'dark'
 }

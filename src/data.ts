@@ -5,7 +5,8 @@ export const defaultSettings: Settings = {
   shortBreakMinutes: 5,
   longBreakMinutes: 15,
   longBreakInterval: 4,
-  autoStartBreak: false
+  autoStartBreak: false,
+  theme: 'light'
 }
 
 export const initialTasks: Task[] = [
@@ -44,6 +45,10 @@ export function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
   const rest = Math.floor(seconds % 60).toString().padStart(2, '0')
   return `${minutes}:${rest}`
+}
+
+export function readSettings() {
+  return { ...defaultSettings, ...readStorage('settings', defaultSettings) }
 }
 
 export function readStorage<T>(key: string, fallback: T): T {
