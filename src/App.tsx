@@ -120,34 +120,23 @@ function App() {
     setSiteInput('')
   }
 
-  async function selectApp() {
-    if (!window.pixelPomodoro?.selectBlockedApp) {
-      setAppSelectMessage('请在桌面应用窗口中选择')
+  function selectApp(file: File | null) {
+    if (!file) {
+      setAppSelectMessage('已取消选择')
       return
     }
 
-    try {
-      setAppSelectMessage('正在打开选择窗口...')
-      const selected = await window.pixelPomodoro.selectBlockedApp()
-      if (!selected) {
-        setAppSelectMessage('已取消选择')
-        return
-      }
-      setBlockedApps((current) => [
-        {
-          id: Date.now(),
-          name: selected.name,
-          processName: selected.processName,
-          filePath: selected.filePath,
-          action: 'warn',
-          enabled: true
-        },
-        ...current
-      ])
-      setAppSelectMessage('已添加应用')
-    } catch {
-      setAppSelectMessage('选择失败，请重试')
-    }
+    setBlockedApps((current) => [
+      {
+        id: Date.now(),
+        name: file.name.replace(/\.[^.]+$/, '') || file.name,
+        processName: file.name,
+        action: 'warn',
+        enabled: true
+      },
+      ...current
+    ])
+    setAppSelectMessage(`已添加 ${file.name}`)
   }
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {

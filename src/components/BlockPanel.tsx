@@ -9,7 +9,7 @@ type Props = {
   setBlockedSites: (updater: (current: BlockedSite[]) => BlockedSite[]) => void
   setBlockedApps: (updater: (current: BlockedApp[]) => BlockedApp[]) => void
   addSite: () => void
-  selectApp: () => void
+  selectApp: (file: File | null) => void
 }
 
 export function BlockPanel(props: Props) {
@@ -40,7 +40,10 @@ export function BlockPanel(props: Props) {
         <div>
           <h3>软件</h3>
           <div className="inline-form stacked">
-            <button onClick={props.selectApp}>选择并添加本地应用</button>
+            <label className="file-picker">
+              选择并添加本地 EXE 应用
+              <input type="file" accept=".exe" onChange={(event) => props.selectApp(event.target.files?.[0] ?? null)} />
+            </label>
             {props.appSelectMessage && <p className="form-message">{props.appSelectMessage}</p>}
           </div>
           <div className="mini-list">

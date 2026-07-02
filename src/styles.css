@@ -388,6 +388,28 @@ p {
   min-width: 132px;
 }
 
+.file-picker {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid #8d7669;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: #3f352f;
+  cursor: pointer;
+  font-weight: 700;
+  box-shadow: 3px 3px 0 rgba(91, 68, 58, 0.18);
+}
+
+.file-picker input {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
 .form-message {
   color: #9d6b5e;
   font-size: 13px;
@@ -405,7 +427,8 @@ p {
 
 .app-shell[data-theme="dark"] button,
 .app-shell[data-theme="dark"] select,
-.app-shell[data-theme="dark"] input {
+.app-shell[data-theme="dark"] input,
+.app-shell[data-theme="dark"] .file-picker {
   border-color: #8f7a8c;
   background: #312d40;
   color: #f4eadf;

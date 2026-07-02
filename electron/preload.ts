@@ -5,6 +5,5 @@ contextBridge.exposeInMainWorld('pixelPomodoro', {
   notify: (payload: { title: string; body: string }) => ipcRenderer.invoke('system:notify', payload),
   getBlockerStatus: () => ipcRenderer.invoke('blocker:get-status'),
   applyHostBlock: (domains: string[]) => ipcRenderer.invoke('blocker:apply-hosts', domains),
-  clearHostBlock: () => ipcRenderer.invoke('blocker:clear-hosts'),
-  selectBlockedApp: () => ipcRenderer.invoke('blocker:select-app')
+  clearHostBlock: () => ipcRenderer.invoke('blocker:clear-hosts')
 })

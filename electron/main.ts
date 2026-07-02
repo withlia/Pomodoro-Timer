@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
+import { app, BrowserWindow, ipcMain, Notification } from 'electron'
 import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -59,32 +59,6 @@ async function clearHostBlock() {
   return { ok: true, hostsPath }
 }
 
-async function selectAppFile() {
-  const options = {
-    title: '选择要屏蔽的应用',
-    properties: ['openFile'] as Array<'openFile'>,
-    filters: process.platform === 'win32'
-      ? [
-          { name: '应用程序', extensions: ['exe', 'lnk', 'bat', 'cmd'] },
-          { name: '所有文件', extensions: ['*'] }
-        ]
-      : [{ name: '所有文件', extensions: ['*'] }]
-  }
-  const result = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options)
-
-  if (result.canceled || result.filePaths.length === 0) {
-    return null
-  }
-
-  const filePath = result.filePaths[0]
-  const parsed = path.parse(filePath)
-  return {
-    name: parsed.name,
-    processName: parsed.base,
-    filePath
-  }
-}
-
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1180,
@@ -121,7 +95,6 @@ app.whenReady().then(() => {
   }))
   ipcMain.handle('blocker:apply-hosts', (_event, domains: string[]) => applyHostBlock(domains))
   ipcMain.handle('blocker:clear-hosts', () => clearHostBlock())
-  ipcMain.handle('blocker:select-app', () => selectAppFile())
 
   createWindow()
 
