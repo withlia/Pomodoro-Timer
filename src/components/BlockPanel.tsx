@@ -41,7 +41,8 @@ export function BlockPanel(props: Props) {
           <h3>软件</h3>
           <div className="inline-form stacked">
             <label className="file-picker">
-              选择并添加本地 EXE 应用
+              <span>选择本地 EXE 应用</span>
+              <small>点击后从文件夹中选择应用</small>
               <input type="file" accept=".exe" onChange={(event) => props.selectApp(event.target.files?.[0] ?? null)} />
             </label>
             {props.appSelectMessage && <p className="form-message">{props.appSelectMessage}</p>}

@@ -389,24 +389,42 @@ p {
 }
 
 .file-picker {
+  position: relative;
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: 6px;
+  padding: 14px 16px;
   border: 2px solid #8d7669;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fffdf8;
   color: #3f352f;
   cursor: pointer;
   font-weight: 700;
+  text-align: center;
   box-shadow: 3px 3px 0 rgba(91, 68, 58, 0.18);
 }
 
+.file-picker:hover {
+  background: #f5b7a5;
+  border-color: #9d6b5e;
+  color: #4a2f2a;
+}
+
+.file-picker span {
+  font-size: 15px;
+}
+
+.file-picker small {
+  color: #8f7b70;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .file-picker input {
-  min-height: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
 }
 
@@ -492,7 +510,8 @@ p {
 .app-shell[data-theme="dark"] .task-item span,
 .app-shell[data-theme="dark"] .task-item p,
 .app-shell[data-theme="dark"] .settings-grid label,
-.app-shell[data-theme="dark"] .form-message {
+.app-shell[data-theme="dark"] .form-message,
+.app-shell[data-theme="dark"] .file-picker small {
   color: #c9bac9;
 }
 
