@@ -1,12 +1,7 @@
-@font-face {
-  font-family: PixelLocal;
-  src: local("Consolas");
-}
-
 :root {
-  color: #f8e8c8;
-  background: #16161d;
-  font-family: PixelLocal, Consolas, monospace;
+  color: #3f352f;
+  background: #fff7ed;
+  font-family: "Trebuchet MS", "Microsoft YaHei", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: geometricPrecision;
 }
@@ -24,10 +19,10 @@ body {
   min-width: 960px;
   min-height: 100vh;
   background:
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    #16161d;
-  background-size: 18px 18px;
+    linear-gradient(90deg, rgba(196, 155, 121, 0.12) 1px, transparent 1px),
+    linear-gradient(rgba(196, 155, 121, 0.12) 1px, transparent 1px),
+    #fff7ed;
+  background-size: 20px 20px;
 }
 
 button,
@@ -39,29 +34,31 @@ select {
 button,
 select,
 input {
-  border: 3px solid #3d2f2f;
-  background: #fff2cc;
-  color: #241b2f;
+  border: 2px solid #8d7669;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: #3f352f;
   outline: none;
-  box-shadow: 4px 4px 0 #000;
+  box-shadow: 3px 3px 0 rgba(91, 68, 58, 0.18);
 }
 
 button {
   cursor: pointer;
   padding: 10px 14px;
-  text-transform: uppercase;
+  font-weight: 700;
 }
 
 button:hover,
 button.active,
 button.primary {
-  background: #ff6b6b;
-  color: #fff7d6;
+  background: #f5b7a5;
+  border-color: #9d6b5e;
+  color: #4a2f2a;
 }
 
 button:active {
-  transform: translate(3px, 3px);
-  box-shadow: 1px 1px 0 #000;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(91, 68, 58, 0.18);
 }
 
 input,
@@ -85,16 +82,17 @@ p {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 245px 1fr;
   gap: 22px;
   min-height: 100vh;
   padding: 22px;
 }
 
 .pixel-panel {
-  border: 4px solid #f8e8c8;
-  background: #242432;
-  box-shadow: 8px 8px 0 #05050a;
+  border: 2px solid #d5b8a6;
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 6px 6px 0 rgba(179, 139, 112, 0.2);
 }
 
 .sidebar {
@@ -105,17 +103,20 @@ p {
   justify-content: space-between;
   height: calc(100vh - 44px);
   padding: 22px;
+  background: #fff0df;
 }
 
 .sidebar h1 {
   margin-top: 8px;
+  color: #4a3831;
   font-size: 30px;
   line-height: 1.2;
 }
 
 .eyebrow {
-  color: #8be9fd;
+  color: #9d7a5f;
   font-size: 12px;
+  font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -127,10 +128,15 @@ p {
 
 .sidebar nav a,
 .system-card {
-  border: 3px solid #f8e8c8;
+  border: 2px solid #d5b8a6;
+  border-radius: 12px;
   padding: 12px;
-  background: #303047;
-  box-shadow: 4px 4px 0 #05050a;
+  background: #fffaf2;
+  box-shadow: 3px 3px 0 rgba(179, 139, 112, 0.16);
+}
+
+.sidebar nav a:hover {
+  background: #ffe1d6;
 }
 
 .system-card {
@@ -139,8 +145,9 @@ p {
 }
 
 .system-card span,
-.stat-card span {
-  color: #c0b1d8;
+.stat-card span,
+.system-card small {
+  color: #8f7b70;
   font-size: 13px;
 }
 
@@ -161,6 +168,7 @@ p {
 
 .hero-card {
   min-height: 430px;
+  background: linear-gradient(180deg, #fffaf2 0%, #fff2e7 100%);
 }
 
 .summary-grid {
@@ -176,7 +184,7 @@ p {
 }
 
 .stat-card strong {
-  color: #ffe66d;
+  color: #b96f5f;
   font-size: 48px;
 }
 
@@ -200,32 +208,34 @@ p {
 }
 
 .timer-display span {
-  color: #8be9fd;
+  color: #a36f55;
   font-size: 18px;
+  font-weight: 800;
 }
 
 .timer-display strong {
-  color: #fff2cc;
-  font-size: clamp(72px, 11vw, 132px);
+  color: #4f3d36;
+  font-size: clamp(72px, 11vw, 126px);
   line-height: 0.9;
-  text-shadow: 7px 7px 0 #000;
+  text-shadow: 4px 4px 0 #ffe1d6;
 }
 
 .timer-display p {
-  color: #c0b1d8;
+  color: #8f7b70;
 }
 
 .progress-track {
   overflow: hidden;
-  height: 24px;
+  height: 22px;
   margin-bottom: 22px;
-  border: 3px solid #f8e8c8;
-  background: #15151f;
+  border: 2px solid #d5b8a6;
+  border-radius: 999px;
+  background: #f8e6d6;
 }
 
 .progress-track div {
   height: 100%;
-  background: repeating-linear-gradient(90deg, #50fa7b 0 14px, #3bd265 14px 28px);
+  background: repeating-linear-gradient(90deg, #f0a48f 0 14px, #e8927e 14px 28px);
 }
 
 .current-task {
@@ -246,6 +256,7 @@ p {
 
 .section-title h2 {
   margin-top: 6px;
+  color: #4a3831;
 }
 
 .task-list,
@@ -261,14 +272,15 @@ p {
   justify-content: space-between;
   gap: 12px;
   padding: 14px;
-  border: 3px solid #51405d;
-  background: #303047;
+  border: 2px solid #e1c8b7;
+  border-radius: 14px;
+  background: #fffaf2;
   cursor: pointer;
 }
 
 .task-item.selected {
-  border-color: #ffe66d;
-  background: #3b3553;
+  border-color: #d9917e;
+  background: #ffe8de;
 }
 
 .task-item div {
@@ -278,7 +290,7 @@ p {
 
 .task-item span,
 .task-item p {
-  color: #c0b1d8;
+  color: #8f7b70;
 }
 
 .two-columns {
@@ -289,7 +301,7 @@ p {
 
 .two-columns h3 {
   margin-bottom: 12px;
-  color: #ffe66d;
+  color: #9d6b5e;
 }
 
 .inline-form.stacked {
@@ -306,8 +318,9 @@ p {
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border: 2px solid #51405d;
-  background: #303047;
+  border: 2px solid #e1c8b7;
+  border-radius: 12px;
+  background: #fffaf2;
 }
 
 .mini-list input,
@@ -331,20 +344,23 @@ p {
 }
 
 .bar-chart div div {
-  height: 24px;
-  border: 3px solid #f8e8c8;
-  background: #15151f;
+  height: 22px;
+  border: 2px solid #d5b8a6;
+  border-radius: 999px;
+  background: #f8e6d6;
 }
 
 .bar-chart i {
   display: block;
   height: 100%;
-  background: #ff6b6b;
+  border-radius: 999px;
+  background: #d9917e;
 }
 
 .bar-chart em {
-  color: #ffe66d;
+  color: #9d6b5e;
   font-style: normal;
+  font-weight: 800;
 }
 
 .settings-grid {
@@ -354,7 +370,7 @@ p {
 .settings-grid label {
   display: grid;
   gap: 8px;
-  color: #c0b1d8;
+  color: #8f7b70;
 }
 
 @media (max-width: 1050px) {

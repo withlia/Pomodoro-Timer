@@ -19,6 +19,7 @@ function App() {
   const [appNameInput, setAppNameInput] = useState('')
   const [processInput, setProcessInput] = useState('')
   const [platform, setPlatform] = useState('browser')
+  const [blockerMessage, setBlockerMessage] = useState('屏蔽未启用')
   const [tasks, setTasks] = useState<Task[]>(() => readStorage('tasks', initialTasks))
   const [sessions, setSessions] = useState<FocusSession[]>(() => readStorage('sessions', []))
   const [blockedSites, setBlockedSites] = useState<BlockedSite[]>(() => readStorage('blockedSites', initialSites))
@@ -51,6 +52,28 @@ function App() {
   useEffect(() => {
     if (timeLeft === 0 && isRunning) completeCurrentMode()
   }, [timeLeft, isRunning])
+
+  useEffect(() => {
+    if (!isRunning || mode !== 'focus') {
+      window.pixelPomodoro?.clearHostBlock().then(() => setBlockerMessage('屏蔽未启用')).catch(() => setBlockerMessage('屏蔽清理失败'))
+      return
+    }
+
+    const domains = blockedSites.filter((site) => site.enabled).map((site) => site.domain)
+    if (domains.length === 0) {
+      setBlockerMessage('没有启用的屏蔽域名')
+      return
+    }
+
+    window.pixelPomodoro
+      ?.applyHostBlock(domains)
+      .then((result) => setBlockerMessage(`已写入 ${result.entries} 条 hosts 规则`))
+      .catch(() => setBlockerMessage('写入 hosts 失败，请用管理员权限启动'))
+
+    return () => {
+      window.pixelPomodoro?.clearHostBlock().catch(() => undefined)
+    }
+  }, [isRunning, mode, blockedSites])
 
   function switchMode(nextMode: TimerMode, autoStart = false) {
     setMode(nextMode)
@@ -114,7 +137,7 @@ function App() {
       <aside className="sidebar pixel-panel">
         <div><p className="eyebrow">Pixel Pomodoro</p><h1>像素番茄钟</h1></div>
         <nav><a href="#timer">计时</a><a href="#tasks">任务</a><a href="#blocks">屏蔽</a><a href="#stats">统计</a><a href="#settings">设置</a></nav>
-        <div className="system-card"><span>平台</span><strong>{platform}</strong></div>
+        <div className="system-card"><span>平台</span><strong>{platform}</strong><small>{blockerMessage}</small></div>
       </aside>
       <section className="content-grid">
         <TimerPanel mode={mode} settings={settings} timeLeft={timeLeft} isRunning={isRunning} progress={progress} tasks={tasks} selectedTaskId={selectedTaskId} setSelectedTaskId={setSelectedTaskId} setIsRunning={setIsRunning} switchMode={switchMode} completeCurrentMode={completeCurrentMode} />

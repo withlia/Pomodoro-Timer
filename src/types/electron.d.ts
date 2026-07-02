@@ -7,7 +7,10 @@ declare global {
         hostBlockingReady: boolean
         appBlockingReady: boolean
         requiresAdmin: boolean
+        hostsPath: string
       }>
+      applyHostBlock: (domains: string[]) => Promise<{ ok: boolean; entries: number; hostsPath: string }>
+      clearHostBlock: () => Promise<{ ok: boolean; hostsPath: string }>
     }
   }
 }
