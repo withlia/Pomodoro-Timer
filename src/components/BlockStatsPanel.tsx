@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BlockedApp, BlockedSite, TimerMode } from '../types'
+import { Pagination } from './Pagination'
 
 type Props = {
   blockedSites: BlockedSite[]
@@ -18,6 +19,7 @@ type HitEvent = {
 }
 
 const STORAGE_KEY = 'blockHitHistory'
+const PAGE_SIZE = 5
 
 export function BlockStatsPanel(props: Props) {
   const [sessionHits, setSessionHits] = useState<HitEvent[]>([])
@@ -36,6 +38,9 @@ export function BlockStatsPanel(props: Props) {
     }
   })
   const [tick, setTick] = useState(Date.now())
+  const [sitePage, setSitePage] = useState(1)
+  const [appPage, setAppPage] = useState(1)
+  const [recentPage, setRecentPage] = useState(1)
 
   useEffect(() => {
     const record = (event: HitEvent) => {
@@ -122,7 +127,36 @@ export function BlockStatsPanel(props: Props) {
     return map
   }, [totalHits])
 
-  const recent = sessionHits.slice(0, 8)
+  const recent = sessionHits
+  const recentPageCount = Math.max(1, Math.ceil(recent.length / PAGE_SIZE))
+  const sitePageCount = Math.max(1, Math.ceil(enabledSites.length / PAGE_SIZE))
+  const appPageCount = Math.max(1, Math.ceil(enabledApps.length / PAGE_SIZE))
+
+  useEffect(() => {
+    if (sitePage > sitePageCount) setSitePage(sitePageCount)
+  }, [sitePage, sitePageCount])
+  useEffect(() => {
+    if (appPage > appPageCount) setAppPage(appPageCount)
+  }, [appPage, appPageCount])
+  useEffect(() => {
+    if (recentPage > recentPageCount) setRecentPage(recentPageCount)
+  }, [recentPage, recentPageCount])
+
+  const sitePageItems = useMemo(() => {
+    const start = (Math.min(sitePage, sitePageCount) - 1) * PAGE_SIZE
+    return enabledSites.slice(start, start + PAGE_SIZE)
+  }, [enabledSites, sitePage, sitePageCount])
+
+  const appPageItems = useMemo(() => {
+    const start = (Math.min(appPage, appPageCount) - 1) * PAGE_SIZE
+    return enabledApps.slice(start, start + PAGE_SIZE)
+  }, [enabledApps, appPage, appPageCount])
+
+  const recentPageItems = useMemo(() => {
+    const start = (Math.min(recentPage, recentPageCount) - 1) * PAGE_SIZE
+    return recent.slice(start, start + PAGE_SIZE)
+  }, [recent, recentPage, recentPageCount])
+
   const relativeTime = (at: number) => {
     const diff = Math.max(0, Math.floor((tick - at) / 1000))
     if (diff < 60) return `${diff}秒前`
@@ -171,20 +205,23 @@ export function BlockStatsPanel(props: Props) {
           {enabledSites.length === 0 ? (
             <p className="hint-text">暂无启用的网址</p>
           ) : (
-            <ul className="shield-rank-list">
-              {enabledSites.map((site) => {
-                const sessionCount = perSiteSession.get(site.domain) || 0
-                const totalCount = perSiteTotal.get(site.domain.toLowerCase()) || 0
-                return (
-                  <li key={site.id}>
-                    <span className="shield-rank-name">{site.domain}</span>
-                    <span className="shield-rank-count">
-                      本次 <strong>{sessionCount}</strong> · 累计 <strong>{totalCount}</strong>
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
+            <>
+              <ul className="shield-rank-list">
+                {sitePageItems.map((site) => {
+                  const sessionCount = perSiteSession.get(site.domain) || 0
+                  const totalCount = perSiteTotal.get(site.domain.toLowerCase()) || 0
+                  return (
+                    <li key={site.id}>
+                      <span className="shield-rank-name">{site.domain}</span>
+                      <span className="shield-rank-count">
+                        本次 <strong>{sessionCount}</strong> · 累计 <strong>{totalCount}</strong>
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <Pagination page={sitePage} pageCount={sitePageCount} setPage={setSitePage} />
+            </>
           )}
         </div>
         <div>
@@ -192,20 +229,23 @@ export function BlockStatsPanel(props: Props) {
           {enabledApps.length === 0 ? (
             <p className="hint-text">暂无启用的软件</p>
           ) : (
-            <ul className="shield-rank-list">
-              {enabledApps.map((app) => {
-                const sessionCount = perAppSession.get(app.processName) || 0
-                const totalCount = perAppTotal.get(app.processName.toLowerCase()) || 0
-                return (
-                  <li key={app.id}>
-                    <span className="shield-rank-name">{app.name}</span>
-                    <span className="shield-rank-count">
-                      本次 <strong>{sessionCount}</strong> · 累计 <strong>{totalCount}</strong>
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
+            <>
+              <ul className="shield-rank-list">
+                {appPageItems.map((app) => {
+                  const sessionCount = perAppSession.get(app.processName) || 0
+                  const totalCount = perAppTotal.get(app.processName.toLowerCase()) || 0
+                  return (
+                    <li key={app.id}>
+                      <span className="shield-rank-name">{app.name}</span>
+                      <span className="shield-rank-count">
+                        本次 <strong>{sessionCount}</strong> · 累计 <strong>{totalCount}</strong>
+                      </span>
+                    </li>
+                  )
+                })}
+              </ul>
+              <Pagination page={appPage} pageCount={appPageCount} setPage={setAppPage} />
+            </>
           )}
         </div>
       </div>
@@ -215,17 +255,20 @@ export function BlockStatsPanel(props: Props) {
         {recent.length === 0 ? (
           <p className="hint-text">本次专注还未拦截任何进程或网址</p>
         ) : (
-          <ul className="shield-recent-list">
-            {recent.map((event, index) => (
-              <li key={`${event.at}-${index}`}>
-                <span className="shield-recent-tag" data-kind={event.kind}>
-                  {event.kind === 'app' ? '软件' : event.redirected ? '网址·重定向' : '网址'}
-                </span>
-                <span className="shield-recent-name">{event.name}</span>
-                <span className="shield-recent-time">{relativeTime(event.at)}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="shield-recent-list">
+              {recentPageItems.map((event, index) => (
+                <li key={`${event.at}-${index}`}>
+                  <span className="shield-recent-tag" data-kind={event.kind}>
+                    {event.kind === 'app' ? '软件' : event.redirected ? '网址·重定向' : '网址'}
+                  </span>
+                  <span className="shield-recent-name">{event.name}</span>
+                  <span className="shield-recent-time">{relativeTime(event.at)}</span>
+                </li>
+              ))}
+            </ul>
+            <Pagination page={recentPage} pageCount={recentPageCount} setPage={setRecentPage} />
+          </>
         )}
       </div>
     </section>

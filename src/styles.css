@@ -93,6 +93,7 @@ p {
   border-radius: 18px;
   background: rgba(255, 253, 248, 0.92);
   box-shadow: 6px 6px 0 rgba(179, 139, 112, 0.2);
+  min-width: 0;
 }
 
 .sidebar {
@@ -153,9 +154,10 @@ p {
 
 .content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   gap: 22px;
   align-content: start;
+  min-width: 0;
 }
 
 .hero-card,
@@ -380,9 +382,10 @@ p {
 
 .bar-chart>div {
   display: grid;
-  grid-template-columns: 130px 1fr 32px;
+  grid-template-columns: minmax(0, 130px) minmax(0, 1fr) 32px;
   gap: 12px;
   align-items: center;
+  min-width: 0;
 }
 
 .bar-chart span {
@@ -723,8 +726,13 @@ p {
 
 .shield-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
+  min-width: 0;
+}
+
+.shield-columns > div {
+  min-width: 0;
 }
 
 .shield-columns h3 {
@@ -757,6 +765,7 @@ p {
   margin: 0;
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .shield-rank-list li,
@@ -770,6 +779,7 @@ p {
   border-radius: 12px;
   background: #fffaf2;
   font-size: 13px;
+  min-width: 0;
 }
 
 .shield-rank-name,
@@ -870,4 +880,55 @@ p {
 
 .app-shell[data-theme="dark"] .shield-rank-count strong {
   color: #ffb3a3;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.pagination-btn {
+  padding: 4px 12px;
+  font-size: 13px;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #fffdf8;
+  color: #3f352f;
+}
+
+.pagination-btn:disabled:hover {
+  background: #fffdf8;
+  border-color: #8d7669;
+  color: #3f352f;
+}
+
+.pagination-info {
+  color: #8f7b70;
+  font-size: 13px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.pagination-info strong {
+  color: #4a3831;
+  font-weight: 800;
+}
+
+.app-shell[data-theme="dark"] .pagination-btn:disabled {
+  background: #1c1526;
+  color: #b8a5b0;
+}
+
+.app-shell[data-theme="dark"] .pagination-info {
+  color: #b8a5b0;
+}
+
+.app-shell[data-theme="dark"] .pagination-info strong {
+  color: #ffe8de;
 }
