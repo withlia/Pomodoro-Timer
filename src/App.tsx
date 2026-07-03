@@ -82,7 +82,7 @@ function App() {
     // 【修复6】改进网址屏蔽的错误处理和提示信息
     if (domains.length > 0) {
       window.pixelPomodoro
-        ?.applyHostBlock({ domains, redirectUrl: settings.redirectUrl })
+        ?.applyHostBlock({ domains })
         .then((result: { ok?: boolean; entries?: number; error?: string }) => {
           if (result.ok === false) {
             setBlockerMessage(result.error || '写入 hosts 失败')
@@ -122,7 +122,7 @@ function App() {
       window.pixelPomodoro?.clearHostBlock().catch(() => undefined)
       window.pixelPomodoro?.clearAppBlock().catch(() => undefined)
     }
-  }, [isRunning, mode, blockedSites, blockedApps, settings.redirectUrl])
+  }, [isRunning, mode, blockedSites, blockedApps])
 
   function switchMode(nextMode: TimerMode, autoStart = false) {
     setMode(nextMode)
@@ -245,7 +245,7 @@ function App() {
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const next = { ...settings, [key]: value }
     setSettings(next)
-    if (key !== 'autoStartBreak' && key !== 'theme' && key !== 'redirectUrl') {
+    if (key !== 'autoStartBreak' && key !== 'theme') {
       setIsRunning(false)
       setTimeLeft(getInitialSeconds(mode, next))
     }

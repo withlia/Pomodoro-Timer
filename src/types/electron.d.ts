@@ -10,7 +10,7 @@ declare global {
         requiresAdmin: boolean
         hostsPath: string
       }>
-      applyHostBlock: (payload: { domains: string[]; redirectUrl?: string }) => Promise<{ ok: boolean; entries: number; hostsPath: string; redirectReady: boolean; redirectUrl: string }>
+      applyHostBlock: (payload: { domains: string[] }) => Promise<{ ok: boolean; entries: number; hostsPath: string; redirectReady: boolean; redirectUrl: string }>
       clearHostBlock: () => Promise<{ ok: boolean; hostsPath: string }>
       applyAppBlock: (processNames: string[]) => Promise<{ ok: boolean; targets: number }>
       clearAppBlock: () => Promise<{ ok: boolean }>

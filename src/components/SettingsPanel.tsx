@@ -34,10 +34,6 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
           长休息间隔
           <input type="number" min="1" value={settings.longBreakInterval} onChange={(event) => updateSetting('longBreakInterval', Number(event.target.value))} />
         </label>
-        <label>
-          重定向网站
-          <input value={settings.redirectUrl} onChange={(event) => updateSetting('redirectUrl', event.target.value)} placeholder="留空则直接拦截，不重定向" />
-        </label>
         <label className="toggle-line">
           <input type="checkbox" checked={settings.autoStartBreak} onChange={(event) => updateSetting('autoStartBreak', event.target.checked)} />
           自动开始休息

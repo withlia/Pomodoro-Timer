@@ -12,18 +12,14 @@ const isDev = !app.isPackaged
 const execFileAsync = promisify(execFile)
 const blockStart = '# Pixel Pomodoro Block Start'
 const blockEnd = '# Pixel Pomodoro Block End'
-const defaultRedirectUrl = 'https://www.google.com'
 
-type HostBlockPayload = string[] | { domains: string[]; redirectUrl?: string }
+type HostBlockPayload = string[] | { domains: string[] }
 
 let mainWindow: BrowserWindow | null = null
 let redirectServer: http.Server | null = null
 let sniServer: net.Server | null = null
-let currentRedirectUrl = defaultRedirectUrl
-let redirectEnabled = false
 let appBlockTimer: ReturnType<typeof setInterval> | null = null
 let blockedProcessNames: string[] = []
-let blockedDomainSet = new Set<string>()
 const recentDomainHits = new Map<string, number>()
 
 function getHostsPath() {
@@ -46,28 +42,15 @@ function normalizeDomain(domain: string) {
     .replace(/^\.+|\.+$/g, '')
 }
 
-function normalizeRedirectUrl(url: string) {
-  const trimmed = url.trim()
-  if (!trimmed) return ''
-  const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-
-  try {
-    return new URL(withProtocol).toString()
-  } catch {
-    return defaultRedirectUrl
-  }
-}
-
 function normalizeProcessName(processName: string) {
   const name = path.basename(processName.trim()).toLowerCase()
   if (!name) return ''
   return process.platform === 'win32' && !name.endsWith('.exe') ? `${name}.exe` : name
 }
 
-function createHostEntries(domains: string[], redirectTarget: '0.0.0.0' | '127.0.0.1') {
+function createHostEntries(domains: string[]) {
   const hosts = Array.from(new Set(domains.map(normalizeDomain).filter(Boolean).flatMap((domain) => [domain, `www.${domain}`])))
-  const v6 = redirectTarget === '127.0.0.1' ? '::1' : '::1'
-  return { hosts, entries: hosts.flatMap((host) => [`${redirectTarget} ${host}`, `${v6} ${host}`]) }
+  return { entries: hosts.flatMap((host) => [`127.0.0.1 ${host}`, `::1 ${host}`]) }
 }
 
 function stripBlock(content: string) {
@@ -92,7 +75,7 @@ function extractRequestedDomain(request: http.IncomingMessage) {
   }
 }
 
-function reportSiteHit(rawDomain: string, redirected: boolean) {
+function reportSiteHit(rawDomain: string) {
   const domain = normalizeDomain(rawDomain)
   if (!domain) return
   const now = Date.now()
@@ -105,7 +88,7 @@ function reportSiteHit(rawDomain: string, redirected: boolean) {
       recentDomainHits.delete(entries[i][0])
     }
   }
-  mainWindow?.webContents.send('blocker:site-hit', { domain, at: now, redirected })
+  mainWindow?.webContents.send('blocker:site-hit', { domain, at: now, redirected: false })
 }
 
 function parseSniFromClientHello(buffer: Buffer): string {
@@ -151,28 +134,18 @@ function parseSniFromClientHello(buffer: Buffer): string {
   }
 }
 
-function createRedirectHandler(request: http.IncomingMessage, response: http.ServerResponse) {
+function createBlockedResponseHandler(request: http.IncomingMessage, response: http.ServerResponse) {
   const requested = extractRequestedDomain(request)
   const normalized = normalizeDomain(requested)
   if (normalized) {
-    reportSiteHit(normalized, Boolean(currentRedirectUrl))
+    reportSiteHit(normalized)
   }
 
-  if (currentRedirectUrl) {
-    response.writeHead(302, {
-      Location: currentRedirectUrl,
-      'Cache-Control': 'no-store'
-    })
-    response.end(`Redirecting to ${currentRedirectUrl}`)
-  } else {
-    response.writeHead(403, { 'Cache-Control': 'no-store' })
-    response.end('Blocked by Pixel Pomodoro')
-  }
+  response.writeHead(403, { 'Cache-Control': 'no-store' })
+  response.end('Blocked by Pixel Pomodoro')
 }
 
-async function startRedirectServer(redirectUrl: string) {
-  currentRedirectUrl = normalizeRedirectUrl(redirectUrl)
-
+async function startBlockerServers() {
   const httpReady = await ensureHttpServer()
   const sniReady = await ensureSniServer()
   return httpReady || sniReady
@@ -181,7 +154,7 @@ async function startRedirectServer(redirectUrl: string) {
 async function ensureHttpServer() {
   if (redirectServer?.listening) return true
 
-  redirectServer = http.createServer(createRedirectHandler)
+  redirectServer = http.createServer(createBlockedResponseHandler)
 
   return new Promise<boolean>((resolve) => {
     const server = redirectServer
@@ -213,7 +186,7 @@ async function ensureSniServer() {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
       const sni = parseSniFromClientHello(buf)
       if (sni) {
-        reportSiteHit(sni, false)
+        reportSiteHit(sni)
       }
       socket.end()
     })
@@ -242,7 +215,7 @@ async function ensureSniServer() {
   })
 }
 
-async function stopRedirectServer() {
+async function stopBlockerServers() {
   const httpServer = redirectServer
   redirectServer = null
   if (httpServer?.listening) {
@@ -260,24 +233,16 @@ async function stopRedirectServer() {
 
 async function applyHostBlock(payload: HostBlockPayload) {
   const domains = Array.isArray(payload) ? payload : payload.domains
-  const rawRedirect = Array.isArray(payload) ? '' : (payload.redirectUrl ?? '').trim()
   const hostsPath = getHostsPath()
 
   if (domains.length === 0) {
-    await stopRedirectServer()
-    redirectEnabled = false
-    blockedDomainSet = new Set()
-    return { ok: true, entries: 0, hostsPath, redirectReady: false, redirectUrl: '' }
+    await stopBlockerServers()
+    return { ok: true, entries: 0, hostsPath }
   }
 
-  currentRedirectUrl = rawRedirect ? normalizeRedirectUrl(rawRedirect) : ''
+  await startBlockerServers()
 
-  const serverReady = await startRedirectServer(currentRedirectUrl)
-  redirectEnabled = serverReady
-
-  const target: '0.0.0.0' | '127.0.0.1' = serverReady ? '127.0.0.1' : '0.0.0.0'
-  const { hosts, entries } = createHostEntries(domains, target)
-  blockedDomainSet = new Set(hosts.map(normalizeDomain).filter(Boolean))
+  const { entries } = createHostEntries(domains)
 
   const content = await fs.readFile(hostsPath, 'utf8')
   const cleaned = stripBlock(content)
@@ -286,11 +251,11 @@ async function applyHostBlock(payload: HostBlockPayload) {
 
   const verifyContent = await fs.readFile(hostsPath, 'utf8')
   if (!verifyContent.includes(blockStart)) {
-    return { ok: false, entries: 0, hostsPath, redirectReady: serverReady, redirectUrl: currentRedirectUrl, error: 'hosts 写入验证失败' }
+    return { ok: false, entries: 0, hostsPath, error: 'hosts 写入验证失败' }
   }
 
   await flushDns()
-  return { ok: true, entries: entries.length, hostsPath, redirectReady: serverReady, redirectUrl: currentRedirectUrl }
+  return { ok: true, entries: entries.length, hostsPath }
 }
 
 async function clearHostBlock() {
@@ -303,9 +268,7 @@ async function clearHostBlock() {
     undefined
   }
 
-  await stopRedirectServer()
-  redirectEnabled = false
-  blockedDomainSet = new Set()
+  await stopBlockerServers()
   await flushDns()
   return { ok: true, hostsPath }
 }

@@ -260,7 +260,7 @@ export function BlockStatsPanel(props: Props) {
               {recentPageItems.map((event, index) => (
                 <li key={`${event.at}-${index}`}>
                   <span className="shield-recent-tag" data-kind={event.kind}>
-                    {event.kind === 'app' ? '软件' : event.redirected ? '网址·重定向' : '网址'}
+                    {event.kind === 'app' ? '软件' : '网址'}
                   </span>
                   <span className="shield-recent-name">{event.name}</span>
                   <span className="shield-recent-time">{relativeTime(event.at)}</span>
