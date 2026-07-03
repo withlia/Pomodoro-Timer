@@ -160,6 +160,11 @@ p {
   min-width: 0;
 }
 
+.content-grid > .block-stats-card {
+  grid-row: span 2;
+  align-self: stretch;
+}
+
 .hero-card,
 .list-card,
 .block-card,
