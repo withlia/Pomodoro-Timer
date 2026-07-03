@@ -270,8 +270,9 @@ p {
 .task-item {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
-  padding: 14px;
+  padding: 10px 14px;
   border: 2px solid #e1c8b7;
   border-radius: 14px;
   background: #fffaf2;
@@ -283,9 +284,11 @@ p {
   background: #ffe8de;
 }
 
-.task-item div {
+.task-item > div:first-child {
   display: grid;
-  gap: 6px;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .task-item span,
@@ -293,15 +296,26 @@ p {
   color: #8f7b70;
 }
 
-.task-actions {
+.task-item .task-actions {
   display: flex;
-  gap: 10px;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 8px;
   align-items: center;
 }
 
+.task-item .task-actions p {
+  margin: 0 4px;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .task-actions button {
-  padding: 6px 10px;
+  padding: 4px 10px;
   font-size: 13px;
+  min-width: 32px;
 }
 
 .two-columns {
