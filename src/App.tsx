@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { BlockPanel } from './components/BlockPanel'
 import { BlockStatsPanel } from './components/BlockStatsPanel'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -49,10 +49,29 @@ function App() {
   useEffect(() => localStorage.setItem('blockedSites', JSON.stringify(blockedSites)), [blockedSites])
   useEffect(() => localStorage.setItem('blockedApps', JSON.stringify(blockedApps)), [blockedApps])
 
+  const deadlineRef = useRef<number | null>(null)
+
   useEffect(() => {
-    if (!isRunning) return
-    const timer = window.setInterval(() => setTimeLeft((current) => Math.max(0, current - 1)), 1000)
-    return () => window.clearInterval(timer)
+    if (!isRunning) {
+      deadlineRef.current = null
+      return
+    }
+    deadlineRef.current = Date.now() + timeLeft * 1000
+    const tick = () => {
+      if (deadlineRef.current == null) return
+      const remaining = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000))
+      setTimeLeft(remaining)
+    }
+    tick()
+    const timer = window.setInterval(tick, 250)
+    const onVisibility = () => { if (document.visibilityState === 'visible') tick() }
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('focus', tick)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('focus', tick)
+    }
   }, [isRunning])
 
   useEffect(() => {
