@@ -40,4 +40,5 @@ export type Settings = {
   longBreakInterval: number
   autoStartBreak: boolean
   theme: 'light' | 'dark'
+  redirectUrl: string
 }

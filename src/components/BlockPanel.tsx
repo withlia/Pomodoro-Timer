@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { BlockedApp, BlockedSite } from '../types'
 
 type Props = {
@@ -5,14 +6,25 @@ type Props = {
   blockedApps: BlockedApp[]
   siteInput: string
   appSelectMessage: string
+  platform: string
   setSiteInput: (value: string) => void
   setBlockedSites: (updater: (current: BlockedSite[]) => BlockedSite[]) => void
   setBlockedApps: (updater: (current: BlockedApp[]) => BlockedApp[]) => void
   addSite: () => void
-  selectApp: (file: File | null) => void
+  selectApp: () => void
+  addAppByName: (processName: string) => void
 }
 
 export function BlockPanel(props: Props) {
+  const [appInput, setAppInput] = useState('')
+
+  function addManualApp() {
+    const value = appInput.trim()
+    if (!value) return
+    props.addAppByName(value)
+    setAppInput('')
+  }
+
   return (
     <section id="blocks" className="pixel-panel block-card">
       <div className="section-title">
@@ -24,6 +36,7 @@ export function BlockPanel(props: Props) {
       <div className="two-columns">
         <div>
           <h3>域名</h3>
+          <p className="hint-text">番茄钟运行时会直接阻断这些域名</p>
           <div className="inline-form">
             <input value={props.siteInput} onChange={(event) => props.setSiteInput(event.target.value)} placeholder="example.com" />
             <button onClick={props.addSite}>添加</button>
@@ -39,12 +52,16 @@ export function BlockPanel(props: Props) {
         </div>
         <div>
           <h3>软件</h3>
+          <p className="hint-text">番茄钟运行时会自动关闭这些进程</p>
           <div className="inline-form stacked">
-            <label className="file-picker">
+            <button className="file-picker" onClick={props.selectApp}>
               <span>选择本地 EXE 应用</span>
-              <small>点击后从文件夹中选择应用</small>
-              <input type="file" accept=".exe" onChange={(event) => props.selectApp(event.target.files?.[0] ?? null)} />
-            </label>
+              <small>从文件夹中选择应用</small>
+            </button>
+            <div className="manual-app-input">
+              <input value={appInput} onChange={(event) => setAppInput(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManualApp()} placeholder="或输入进程名，如 chrome.exe" />
+              <button onClick={addManualApp}>添加</button>
+            </div>
             {props.appSelectMessage && <p className="form-message">{props.appSelectMessage}</p>}
           </div>
           <div className="mini-list">

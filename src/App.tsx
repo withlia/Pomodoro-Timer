@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from 'react'
 import { BlockPanel } from './components/BlockPanel'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -15,6 +16,7 @@ function App() {
   const [completedFocusCount, setCompletedFocusCount] = useState(0)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(1)
   const [newTaskTitle, setNewTaskTitle] = useState('')
+  const [newTaskEstimate, setNewTaskEstimate] = useState(1)
   const [siteInput, setSiteInput] = useState('')
   const [appSelectMessage, setAppSelectMessage] = useState('')
   const [platform, setPlatform] = useState('browser')
@@ -33,7 +35,12 @@ function App() {
   }, [mode, settings, timeLeft])
 
   useEffect(() => {
-    window.pixelPomodoro?.getPlatform().then(setPlatform).catch(() => setPlatform('browser'))
+    if (!window.pixelPomodoro) {
+      setPlatform('browser')
+      setBlockerMessage('请使用安装版应用')
+      return
+    }
+    window.pixelPomodoro.getPlatform().then(setPlatform).catch(() => setPlatform('browser'))
   }, [])
 
   useEffect(() => localStorage.setItem('settings', JSON.stringify(settings)), [settings])
@@ -55,24 +62,67 @@ function App() {
   useEffect(() => {
     if (!isRunning || mode !== 'focus') {
       window.pixelPomodoro?.clearHostBlock().then(() => setBlockerMessage('屏蔽未启用')).catch(() => setBlockerMessage('屏蔽清理失败'))
+      window.pixelPomodoro?.clearAppBlock().catch(() => undefined)
+      return
+    }
+
+    if (!window.pixelPomodoro) {
+      setBlockerMessage('屏蔽不可用：请使用安装版应用')
       return
     }
 
     const domains = blockedSites.filter((site) => site.enabled).map((site) => site.domain)
-    if (domains.length === 0) {
-      setBlockerMessage('没有启用的屏蔽域名')
+    const processNames = blockedApps.filter((app) => app.enabled).map((app) => app.processName)
+
+    if (domains.length === 0 && processNames.length === 0) {
+      setBlockerMessage('没有启用的屏蔽项')
       return
     }
 
-    window.pixelPomodoro
-      ?.applyHostBlock(domains)
-      .then((result) => setBlockerMessage(`已写入 ${result.entries} 条 hosts 规则`))
-      .catch(() => setBlockerMessage('写入 hosts 失败，请用管理员权限启动'))
+    // 【修复6】改进网址屏蔽的错误处理和提示信息
+    if (domains.length > 0) {
+      window.pixelPomodoro
+        ?.applyHostBlock({ domains, redirectUrl: settings.redirectUrl })
+        .then((result: { ok?: boolean; entries?: number; error?: string }) => {
+          if (result.ok === false) {
+            setBlockerMessage(result.error || '写入 hosts 失败')
+          } else {
+            setBlockerMessage(`已屏蔽 ${result.entries} 条 hosts 规则`)
+          }
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err)
+          setBlockerMessage(`写入 hosts 失败: ${msg}`)
+        })
+    } else {
+      window.pixelPomodoro?.clearHostBlock().catch(() => undefined)
+    }
+
+    // 【修复7】改进软件屏蔽的错误处理
+    if (processNames.length > 0) {
+      window.pixelPomodoro
+        ?.applyAppBlock(processNames)
+        .then((result: { ok?: boolean; targets?: number; platform?: string; error?: string }) => {
+          if (result.ok === false) {
+            setBlockerMessage((prev) => `${prev} | ❌ 软件屏蔽失败: ${result.error || '不支持当前平台'}`)
+          } else if (result.targets && result.targets > 0) {
+            const platMsg = result.platform ? ` (${result.platform})` : ''
+            setBlockerMessage((prev) => `${prev} | ✅ 已监控 ${result.targets} 个进程${platMsg}`)
+          }
+        })
+        .catch((err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err)
+          setBlockerMessage((prev) => `${prev} | ❌ 应用屏蔽失败: ${msg}`)
+        })
+    } else {
+      window.pixelPomodoro?.clearAppBlock().catch(() => undefined)
+    }
 
     return () => {
       window.pixelPomodoro?.clearHostBlock().catch(() => undefined)
+      window.pixelPomodoro?.clearAppBlock().catch(() => undefined)
     }
-  }, [isRunning, mode, blockedSites])
+  }, [isRunning, mode, blockedSites, blockedApps, settings.redirectUrl])
 
   function switchMode(nextMode: TimerMode, autoStart = false) {
     setMode(nextMode)
@@ -100,10 +150,22 @@ function App() {
   function addTask() {
     const title = newTaskTitle.trim()
     if (!title) return
-    const task: Task = { id: Date.now(), title, status: 'todo', estimatedPomodoros: 1, completedPomodoros: 0 }
+    const estimate = Math.max(1, Math.floor(newTaskEstimate) || 1)
+    const task: Task = { id: Date.now(), title, status: 'todo', estimatedPomodoros: estimate, completedPomodoros: 0 }
     setTasks((current) => [task, ...current])
     setSelectedTaskId(task.id)
     setNewTaskTitle('')
+    setNewTaskEstimate(1)
+  }
+
+  function updateTaskEstimate(id: number, delta: number) {
+    setTasks((current) => current.map((task) => {
+      if (task.id !== id) return task
+      const nextEstimate = Math.max(1, task.estimatedPomodoros + delta)
+      const nextEstimateFinal = Math.max(nextEstimate, task.completedPomodoros)
+      const nextStatus = task.completedPomodoros >= nextEstimateFinal ? 'done' : task.status === 'done' ? 'doing' : task.status
+      return { ...task, estimatedPomodoros: nextEstimateFinal, status: nextStatus }
+    }))
   }
 
   function deleteTask(id: number) {
@@ -114,14 +176,20 @@ function App() {
   }
 
   function addSite() {
-    const domain = siteInput.trim().replace(/^https?:\/\//, '').replace(/\/.*/, '')
+    const domain = siteInput.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '').replace(/:\d+$/, '')
     if (!domain) return
     setBlockedSites((current) => [{ id: Date.now(), domain, enabled: true }, ...current])
     setSiteInput('')
   }
 
-  function selectApp(file: File | null) {
-    if (!file) {
+  async function selectApp() {
+    if (!window.pixelPomodoro?.selectApp) {
+      setAppSelectMessage('请在安装版应用中选择 EXE')
+      return
+    }
+
+    const selected = await window.pixelPomodoro.selectApp()
+    if (!selected) {
       setAppSelectMessage('已取消选择')
       return
     }
@@ -129,20 +197,55 @@ function App() {
     setBlockedApps((current) => [
       {
         id: Date.now(),
-        name: file.name.replace(/\.[^.]+$/, '') || file.name,
-        processName: file.name,
+        name: selected.name,
+        processName: selected.processName,
+        filePath: selected.filePath,
         action: 'warn',
         enabled: true
       },
       ...current
     ])
-    setAppSelectMessage(`已添加 ${file.name}`)
+    setAppSelectMessage(`已添加 ${selected.processName}`)
+  }
+
+  /**
+   * 【新增】手动添加应用（用于 macOS/Linux 或 Windows UWP 应用）
+   * 用户输入进程名称，直接添加到屏蔽列表
+   */
+  function addAppByName(processName: string) {
+    const name = processName.trim()
+    if (!name) return
+
+    // 检查是否重复
+    const exists = blockedApps.some(
+      (app) => app.processName.toLowerCase() === name.toLowerCase() || app.name.toLowerCase() === name.toLowerCase()
+    )
+    if (exists) {
+      setAppSelectMessage(`⚠️ "${name}" 已在列表中`)
+      return
+    }
+
+    // 生成显示名（取第一个单词或整个名称）
+    const displayName = name.split(/[\/\\]/).pop() || name
+    const shortName = displayName.includes('.') ? displayName.replace(/\.[^.]+$/, '') : displayName
+
+    setBlockedApps((current) => [
+      {
+        id: Date.now(),
+        name: shortName,
+        processName: name,
+        action: 'warn',
+        enabled: true
+      },
+      ...current
+    ])
+    setAppSelectMessage(`✅ 已添加进程: ${name}`)
   }
 
   function updateSetting<K extends keyof Settings>(key: K, value: Settings[K]) {
     const next = { ...settings, [key]: value }
     setSettings(next)
-    if (key !== 'autoStartBreak' && key !== 'theme') {
+    if (key !== 'autoStartBreak' && key !== 'theme' && key !== 'redirectUrl') {
       setIsRunning(false)
       setTimeLeft(getInitialSeconds(mode, next))
     }
@@ -162,8 +265,21 @@ function App() {
           <div className="pixel-panel stat-card"><span>专注分钟</span><strong>{totalMinutes}</strong></div>
           <div className="pixel-panel stat-card"><span>启用屏蔽</span><strong>{activeBlockCount}</strong></div>
         </section>
-        <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} setNewTaskTitle={setNewTaskTitle} setSelectedTaskId={setSelectedTaskId} addTask={addTask} deleteTask={deleteTask} />
-        <BlockPanel blockedSites={blockedSites} blockedApps={blockedApps} siteInput={siteInput} appSelectMessage={appSelectMessage} setSiteInput={setSiteInput} setBlockedSites={setBlockedSites} setBlockedApps={setBlockedApps} addSite={addSite} selectApp={selectApp} />
+        <TaskPanel tasks={tasks} selectedTaskId={selectedTaskId} newTaskTitle={newTaskTitle} newTaskEstimate={newTaskEstimate} setNewTaskTitle={setNewTaskTitle} setNewTaskEstimate={setNewTaskEstimate} setSelectedTaskId={setSelectedTaskId} addTask={addTask} deleteTask={deleteTask} updateTaskEstimate={updateTaskEstimate} />
+        {/* 【修复8】传递 platform 和 addAppByName 给 BlockPanel */}
+        <BlockPanel
+          blockedSites={blockedSites}
+          blockedApps={blockedApps}
+          siteInput={siteInput}
+          appSelectMessage={appSelectMessage}
+          platform={platform}
+          setSiteInput={setSiteInput}
+          setBlockedSites={setBlockedSites}
+          setBlockedApps={setBlockedApps}
+          addSite={addSite}
+          selectApp={selectApp}
+          addAppByName={addAppByName}
+        />
         <StatsPanel tasks={tasks} />
         <SettingsPanel settings={settings} updateSetting={updateSetting} />
       </section>

@@ -6,7 +6,8 @@ export const defaultSettings: Settings = {
   longBreakMinutes: 15,
   longBreakInterval: 4,
   autoStartBreak: false,
-  theme: 'light'
+  theme: 'light',
+  redirectUrl: 'https://www.google.com'
 }
 
 export const initialTasks: Task[] = [
