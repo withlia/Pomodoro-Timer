@@ -398,11 +398,84 @@ p {
   word-break: break-all;
 }
 
+.toggle-line {
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.toggle-line:hover {
+  border-color: #d9917e;
+}
+
+.toggle-line > span {
+  color: #4a3831;
+  font-weight: 700;
+  font-size: 14px;
+}
+
 .mini-list input,
-.toggle-line input {
+.toggle-line input:not(.pixel-switch) {
   width: auto;
   min-height: auto;
   box-shadow: none;
+}
+
+.pixel-switch {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex: 0 0 auto;
+  width: 52px;
+  height: 28px;
+  padding: 0;
+  min-height: auto;
+  border: 2px solid #8d7669;
+  border-radius: 999px;
+  background: #f0dccb;
+  box-shadow: 3px 3px 0 rgba(91, 68, 58, 0.18);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.pixel-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fffdf8;
+  border: 2px solid #8d7669;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 rgba(91, 68, 58, 0.22);
+  transition: left 0.18s cubic-bezier(0.5, 1.6, 0.6, 1), background 0.18s ease, border-color 0.18s ease;
+}
+
+.pixel-switch:checked {
+  background: #f5b7a5;
+  border-color: #9d6b5e;
+}
+
+.pixel-switch:checked::before {
+  left: 26px;
+  background: #ffe8de;
+  border-color: #9d6b5e;
+}
+
+.pixel-switch:focus-visible {
+  outline: 3px solid rgba(217, 145, 126, 0.5);
+  outline-offset: 2px;
+}
+
+.pixel-switch:hover {
+  background: #ebc9b5;
+}
+
+.pixel-switch:checked:hover {
+  background: #efa896;
 }
 
 .bar-chart>div {
@@ -564,6 +637,30 @@ p {
 .app-shell[data-theme="dark"] .task-item.selected {
   background: #44354a;
   border-color: #d89a8b;
+}
+
+.app-shell[data-theme="dark"] .toggle-line > span {
+  color: #ffe8de;
+}
+
+.app-shell[data-theme="dark"] .pixel-switch {
+  background: #3f3049;
+  border-color: #b8a5b0;
+}
+
+.app-shell[data-theme="dark"] .pixel-switch::before {
+  background: #1c1526;
+  border-color: #b8a5b0;
+}
+
+.app-shell[data-theme="dark"] .pixel-switch:checked {
+  background: #d89a8b;
+  border-color: #ffd9c9;
+}
+
+.app-shell[data-theme="dark"] .pixel-switch:checked::before {
+  background: #4a2233;
+  border-color: #ffd9c9;
 }
 
 .app-shell[data-theme="dark"] .hero-card {

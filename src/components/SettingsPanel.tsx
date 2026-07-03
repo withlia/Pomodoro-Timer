@@ -35,8 +35,13 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
           <input type="number" min="1" value={settings.longBreakInterval} onChange={(event) => updateSetting('longBreakInterval', Number(event.target.value))} />
         </label>
         <label className="toggle-line">
-          <input type="checkbox" checked={settings.autoStartBreak} onChange={(event) => updateSetting('autoStartBreak', event.target.checked)} />
-          自动开始休息
+          <span>自动开始休息</span>
+          <input
+            type="checkbox"
+            className="pixel-switch"
+            checked={settings.autoStartBreak}
+            onChange={(event) => updateSetting('autoStartBreak', event.target.checked)}
+          />
         </label>
       </div>
     </section>
