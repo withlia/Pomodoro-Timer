@@ -15,6 +15,7 @@ declare global {
       applyAppBlock: (processNames: string[]) => Promise<{ ok: boolean; targets: number }>
       clearAppBlock: () => Promise<{ ok: boolean }>
       onAppKilled?: (handler: (payload: { processName: string; at: number }) => void) => () => void
+      onSiteHit?: (handler: (payload: { domain: string; at: number; redirected: boolean }) => void) => () => void
     }
   }
 }

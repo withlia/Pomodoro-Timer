@@ -798,6 +798,32 @@ p {
   white-space: nowrap;
 }
 
+.shield-recent-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 2px solid #d9917e;
+  color: #a13d2a;
+  background: #ffe8de;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shield-recent-tag[data-kind="site"] {
+  border-color: #7ea8d9;
+  color: #244f80;
+  background: #dee9ff;
+}
+
+.shield-recent-list li {
+  gap: 10px;
+}
+
+.shield-recent-list .shield-recent-name {
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 720px) {
   .shield-columns {
     grid-template-columns: 1fr;

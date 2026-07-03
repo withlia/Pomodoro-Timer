@@ -13,5 +13,10 @@ contextBridge.exposeInMainWorld('pixelPomodoro', {
     const listener = (_event: unknown, payload: { processName: string; at: number }) => handler(payload)
     ipcRenderer.on('blocker:app-killed', listener)
     return () => ipcRenderer.removeListener('blocker:app-killed', listener)
+  },
+  onSiteHit: (handler: (payload: { domain: string; at: number; redirected: boolean }) => void) => {
+    const listener = (_event: unknown, payload: { domain: string; at: number; redirected: boolean }) => handler(payload)
+    ipcRenderer.on('blocker:site-hit', listener)
+    return () => ipcRenderer.removeListener('blocker:site-hit', listener)
   }
 })

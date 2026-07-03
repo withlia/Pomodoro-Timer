@@ -18,8 +18,10 @@ type HostBlockPayload = string[] | { domains: string[]; redirectUrl?: string }
 let mainWindow: BrowserWindow | null = null
 let redirectServer: http.Server | null = null
 let currentRedirectUrl = defaultRedirectUrl
+let redirectEnabled = false
 let appBlockTimer: ReturnType<typeof setInterval> | null = null
 let blockedProcessNames: string[] = []
+let blockedDomainSet = new Set<string>()
 
 function getHostsPath() {
   if (process.platform === 'win32') {
@@ -42,7 +44,8 @@ function normalizeDomain(domain: string) {
 }
 
 function normalizeRedirectUrl(url: string) {
-  const trimmed = url.trim() || defaultRedirectUrl
+  const trimmed = url.trim()
+  if (!trimmed) return ''
   const withProtocol = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
 
   try {
@@ -58,9 +61,10 @@ function normalizeProcessName(processName: string) {
   return process.platform === 'win32' && !name.endsWith('.exe') ? `${name}.exe` : name
 }
 
-function createHostEntries(domains: string[]) {
+function createHostEntries(domains: string[], redirectTarget: '0.0.0.0' | '127.0.0.1') {
   const hosts = Array.from(new Set(domains.map(normalizeDomain).filter(Boolean).flatMap((domain) => [domain, `www.${domain}`])))
-  return hosts.flatMap((host) => [`0.0.0.0 ${host}`, `::1 ${host}`])
+  const v6 = redirectTarget === '127.0.0.1' ? '::1' : '::1'
+  return { hosts, entries: hosts.flatMap((host) => [`${redirectTarget} ${host}`, `${v6} ${host}`]) }
 }
 
 function stripBlock(content: string) {
@@ -74,7 +78,30 @@ async function flushDns() {
   }
 }
 
-function createRedirectHandler(_request: http.IncomingMessage, response: http.ServerResponse) {
+function extractRequestedDomain(request: http.IncomingMessage) {
+  const rawHost = (request.headers.host || '').toString().split(':')[0].toLowerCase()
+  if (rawHost) return rawHost
+  try {
+    const url = new URL(request.url || '/', 'http://placeholder')
+    return url.hostname
+  } catch {
+    return ''
+  }
+}
+
+function createRedirectHandler(request: http.IncomingMessage, response: http.ServerResponse) {
+  const requested = extractRequestedDomain(request)
+  const normalized = normalizeDomain(requested)
+  const matched = normalized && (blockedDomainSet.has(normalized) || Array.from(blockedDomainSet).some((domain) => normalized.endsWith(`.${domain}`)))
+
+  if (matched || requested) {
+    mainWindow?.webContents.send('blocker:site-hit', {
+      domain: normalized || requested,
+      at: Date.now(),
+      redirected: Boolean(currentRedirectUrl)
+    })
+  }
+
   response.writeHead(302, {
     Location: currentRedirectUrl,
     'Cache-Control': 'no-store'
@@ -124,17 +151,34 @@ async function stopRedirectServer() {
 
 async function applyHostBlock(payload: HostBlockPayload) {
   const domains = Array.isArray(payload) ? payload : payload.domains
-  const redirectUrl = Array.isArray(payload) ? defaultRedirectUrl : payload.redirectUrl ?? defaultRedirectUrl
+  const rawRedirect = Array.isArray(payload) ? '' : (payload.redirectUrl ?? '').trim()
   const hostsPath = getHostsPath()
 
   if (domains.length === 0) {
-    return { ok: true, entries: 0, hostsPath, redirectReady: false, redirectUrl: currentRedirectUrl }
+    await stopRedirectServer()
+    redirectEnabled = false
+    blockedDomainSet = new Set()
+    return { ok: true, entries: 0, hostsPath, redirectReady: false, redirectUrl: '' }
   }
 
-  const redirectReady = false
+  const useRedirect = rawRedirect.length > 0
+  currentRedirectUrl = useRedirect ? normalizeRedirectUrl(rawRedirect) : ''
+
+  let redirectReady = false
+  if (useRedirect) {
+    redirectReady = await startRedirectServer(currentRedirectUrl)
+    redirectEnabled = redirectReady
+  } else {
+    await stopRedirectServer()
+    redirectEnabled = false
+  }
+
+  const target: '0.0.0.0' | '127.0.0.1' = redirectEnabled ? '127.0.0.1' : '0.0.0.0'
+  const { hosts, entries } = createHostEntries(domains, target)
+  blockedDomainSet = new Set(hosts.map(normalizeDomain).filter(Boolean))
+
   const content = await fs.readFile(hostsPath, 'utf8')
   const cleaned = stripBlock(content)
-  const entries = createHostEntries(domains)
   const block = `\n\n${blockStart}\n${entries.join('\n')}\n${blockEnd}\n`
   await fs.writeFile(hostsPath, `${cleaned}${block}`, 'utf8')
 
@@ -158,6 +202,8 @@ async function clearHostBlock() {
   }
 
   await stopRedirectServer()
+  redirectEnabled = false
+  blockedDomainSet = new Set()
   await flushDns()
   return { ok: true, hostsPath }
 }

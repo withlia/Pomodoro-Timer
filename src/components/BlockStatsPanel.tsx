@@ -10,14 +10,27 @@ type Props = {
   focusTotalSeconds: number
 }
 
-type KillEvent = { processName: string; at: number }
+type HitEvent = {
+  kind: 'app' | 'site'
+  name: string
+  at: number
+  redirected?: boolean
+}
+
+const STORAGE_KEY = 'blockHitHistory'
 
 export function BlockStatsPanel(props: Props) {
-  const [sessionKills, setSessionKills] = useState<KillEvent[]>([])
-  const [totalKills, setTotalKills] = useState<KillEvent[]>(() => {
+  const [sessionHits, setSessionHits] = useState<HitEvent[]>([])
+  const [totalHits, setTotalHits] = useState<HitEvent[]>(() => {
     try {
-      const raw = localStorage.getItem('blockKillHistory')
-      return raw ? (JSON.parse(raw) as KillEvent[]) : []
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) return JSON.parse(raw) as HitEvent[]
+      const legacy = localStorage.getItem('blockKillHistory')
+      if (legacy) {
+        const parsed = JSON.parse(legacy) as { processName: string; at: number }[]
+        return parsed.map((event) => ({ kind: 'app' as const, name: event.processName, at: event.at }))
+      }
+      return []
     } catch {
       return []
     }
@@ -25,27 +38,37 @@ export function BlockStatsPanel(props: Props) {
   const [tick, setTick] = useState(Date.now())
 
   useEffect(() => {
-    if (!window.pixelPomodoro?.onAppKilled) return
-    const off = window.pixelPomodoro.onAppKilled((payload) => {
-      setSessionKills((current) => [payload, ...current].slice(0, 200))
-      setTotalKills((current) => {
-        const next = [payload, ...current].slice(0, 500)
+    const record = (event: HitEvent) => {
+      setSessionHits((current) => [event, ...current].slice(0, 200))
+      setTotalHits((current) => {
+        const next = [event, ...current].slice(0, 500)
         try {
-          localStorage.setItem('blockKillHistory', JSON.stringify(next))
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
         } catch {
           // ignore quota
         }
         return next
       })
-    })
-    return () => {
-      if (typeof off === 'function') off()
     }
+
+    const disposers: Array<() => void> = []
+
+    const offApp = window.pixelPomodoro?.onAppKilled?.((payload) => {
+      record({ kind: 'app', name: payload.processName, at: payload.at })
+    })
+    if (typeof offApp === 'function') disposers.push(offApp)
+
+    const offSite = window.pixelPomodoro?.onSiteHit?.((payload) => {
+      record({ kind: 'site', name: payload.domain, at: payload.at, redirected: payload.redirected })
+    })
+    if (typeof offSite === 'function') disposers.push(offSite)
+
+    return () => disposers.forEach((fn) => fn())
   }, [])
 
   useEffect(() => {
     if (props.mode === 'focus' && props.isRunning && props.timeLeft === props.focusTotalSeconds) {
-      setSessionKills([])
+      setSessionHits([])
     }
   }, [props.mode, props.isRunning, props.timeLeft, props.focusTotalSeconds])
 
@@ -64,23 +87,42 @@ export function BlockStatsPanel(props: Props) {
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
   const elapsedRemainSec = elapsedSeconds % 60
 
+  const sessionAppHits = sessionHits.filter((event) => event.kind === 'app')
+  const sessionSiteHits = sessionHits.filter((event) => event.kind === 'site')
+
   const perAppSession = useMemo(() => {
     const map = new Map<string, number>()
-    sessionKills.forEach((event) => {
-      map.set(event.processName, (map.get(event.processName) || 0) + 1)
+    sessionAppHits.forEach((event) => {
+      map.set(event.name, (map.get(event.name) || 0) + 1)
     })
-    return Array.from(map.entries()).sort((a, b) => b[1] - a[1])
-  }, [sessionKills])
+    return map
+  }, [sessionAppHits])
 
   const perAppTotal = useMemo(() => {
     const map = new Map<string, number>()
-    totalKills.forEach((event) => {
-      map.set(event.processName, (map.get(event.processName) || 0) + 1)
+    totalHits.filter((event) => event.kind === 'app').forEach((event) => {
+      map.set(event.name.toLowerCase(), (map.get(event.name.toLowerCase()) || 0) + 1)
     })
     return map
-  }, [totalKills])
+  }, [totalHits])
 
-  const recent = sessionKills.slice(0, 6)
+  const perSiteSession = useMemo(() => {
+    const map = new Map<string, number>()
+    sessionSiteHits.forEach((event) => {
+      map.set(event.name, (map.get(event.name) || 0) + 1)
+    })
+    return map
+  }, [sessionSiteHits])
+
+  const perSiteTotal = useMemo(() => {
+    const map = new Map<string, number>()
+    totalHits.filter((event) => event.kind === 'site').forEach((event) => {
+      map.set(event.name.toLowerCase(), (map.get(event.name.toLowerCase()) || 0) + 1)
+    })
+    return map
+  }, [totalHits])
+
+  const recent = sessionHits.slice(0, 8)
   const relativeTime = (at: number) => {
     const diff = Math.max(0, Math.floor((tick - at) / 1000))
     if (diff < 60) return `${diff}秒前`
@@ -113,26 +155,35 @@ export function BlockStatsPanel(props: Props) {
         </div>
         <div className="shield-stat">
           <span>本次拦截</span>
-          <strong>{sessionKills.length}</strong>
-          <small>{elapsedMinutes}分{elapsedRemainSec}秒内</small>
+          <strong>{sessionHits.length}</strong>
+          <small>{sessionSiteHits.length}网址 · {sessionAppHits.length}应用 · {elapsedMinutes}分{elapsedRemainSec}秒</small>
         </div>
         <div className="shield-stat">
           <span>累计拦截</span>
-          <strong>{totalKills.length}</strong>
+          <strong>{totalHits.length}</strong>
           <small>历史总数</small>
         </div>
       </div>
 
       <div className="shield-columns">
         <div>
-          <h3>启用网址</h3>
+          <h3>网址拦截排行</h3>
           {enabledSites.length === 0 ? (
             <p className="hint-text">暂无启用的网址</p>
           ) : (
-            <ul className="shield-tag-list">
-              {enabledSites.map((site) => (
-                <li key={site.id} className="shield-tag">{site.domain}</li>
-              ))}
+            <ul className="shield-rank-list">
+              {enabledSites.map((site) => {
+                const sessionCount = perSiteSession.get(site.domain) || 0
+                const totalCount = perSiteTotal.get(site.domain.toLowerCase()) || 0
+                return (
+                  <li key={site.id}>
+                    <span className="shield-rank-name">{site.domain}</span>
+                    <span className="shield-rank-count">
+                      本次 <strong>{sessionCount}</strong> · 累计 <strong>{totalCount}</strong>
+                    </span>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>
@@ -143,8 +194,8 @@ export function BlockStatsPanel(props: Props) {
           ) : (
             <ul className="shield-rank-list">
               {enabledApps.map((app) => {
-                const sessionCount = perAppSession.find(([name]) => name.toLowerCase() === app.processName.toLowerCase())?.[1] ?? 0
-                const totalCount = perAppTotal.get(app.processName.toLowerCase()) || perAppTotal.get(app.processName) || 0
+                const sessionCount = perAppSession.get(app.processName) || 0
+                const totalCount = perAppTotal.get(app.processName.toLowerCase()) || 0
                 return (
                   <li key={app.id}>
                     <span className="shield-rank-name">{app.name}</span>
@@ -162,12 +213,15 @@ export function BlockStatsPanel(props: Props) {
       <div>
         <h3>最近拦截</h3>
         {recent.length === 0 ? (
-          <p className="hint-text">本次专注还未拦截任何进程</p>
+          <p className="hint-text">本次专注还未拦截任何进程或网址</p>
         ) : (
           <ul className="shield-recent-list">
             {recent.map((event, index) => (
               <li key={`${event.at}-${index}`}>
-                <span className="shield-recent-name">{event.processName}</span>
+                <span className="shield-recent-tag" data-kind={event.kind}>
+                  {event.kind === 'app' ? '软件' : event.redirected ? '网址·重定向' : '网址'}
+                </span>
+                <span className="shield-recent-name">{event.name}</span>
                 <span className="shield-recent-time">{relativeTime(event.at)}</span>
               </li>
             ))}

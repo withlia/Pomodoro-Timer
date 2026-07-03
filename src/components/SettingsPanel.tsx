@@ -36,7 +36,7 @@ export function SettingsPanel({ settings, updateSetting }: Props) {
         </label>
         <label>
           重定向网站
-          <input value={settings.redirectUrl} onChange={(event) => updateSetting('redirectUrl', event.target.value)} placeholder="https://www.google.com" />
+          <input value={settings.redirectUrl} onChange={(event) => updateSetting('redirectUrl', event.target.value)} placeholder="留空则直接拦截，不重定向" />
         </label>
         <label className="toggle-line">
           <input type="checkbox" checked={settings.autoStartBreak} onChange={(event) => updateSetting('autoStartBreak', event.target.checked)} />
