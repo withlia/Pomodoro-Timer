@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron'
 import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
 import http from 'node:http'
+import net from 'node:net'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
@@ -17,11 +18,13 @@ type HostBlockPayload = string[] | { domains: string[]; redirectUrl?: string }
 
 let mainWindow: BrowserWindow | null = null
 let redirectServer: http.Server | null = null
+let sniServer: net.Server | null = null
 let currentRedirectUrl = defaultRedirectUrl
 let redirectEnabled = false
 let appBlockTimer: ReturnType<typeof setInterval> | null = null
 let blockedProcessNames: string[] = []
 let blockedDomainSet = new Set<string>()
+const recentDomainHits = new Map<string, number>()
 
 function getHostsPath() {
   if (process.platform === 'win32') {
@@ -89,32 +92,94 @@ function extractRequestedDomain(request: http.IncomingMessage) {
   }
 }
 
+function reportSiteHit(rawDomain: string, redirected: boolean) {
+  const domain = normalizeDomain(rawDomain)
+  if (!domain) return
+  const now = Date.now()
+  const last = recentDomainHits.get(domain) || 0
+  if (now - last < 1500) return
+  recentDomainHits.set(domain, now)
+  if (recentDomainHits.size > 200) {
+    const entries = Array.from(recentDomainHits.entries()).sort((a, b) => a[1] - b[1])
+    for (let i = 0; i < 100 && i < entries.length; i += 1) {
+      recentDomainHits.delete(entries[i][0])
+    }
+  }
+  mainWindow?.webContents.send('blocker:site-hit', { domain, at: now, redirected })
+}
+
+function parseSniFromClientHello(buffer: Buffer): string {
+  try {
+    if (buffer.length < 43 || buffer[0] !== 0x16) return ''
+    let offset = 5
+    if (buffer[offset] !== 0x01) return ''
+    offset += 4
+    offset += 2 + 32
+    const sessionIdLen = buffer[offset]
+    offset += 1 + sessionIdLen
+    const cipherLen = buffer.readUInt16BE(offset)
+    offset += 2 + cipherLen
+    const compressionLen = buffer[offset]
+    offset += 1 + compressionLen
+    if (offset + 2 > buffer.length) return ''
+    const extensionsLen = buffer.readUInt16BE(offset)
+    offset += 2
+    const extensionsEnd = offset + extensionsLen
+    while (offset + 4 <= extensionsEnd && offset + 4 <= buffer.length) {
+      const type = buffer.readUInt16BE(offset)
+      const size = buffer.readUInt16BE(offset + 2)
+      offset += 4
+      if (type === 0x0000) {
+        const listEnd = offset + size
+        offset += 2
+        while (offset + 3 <= listEnd) {
+          const nameType = buffer[offset]
+          const nameLen = buffer.readUInt16BE(offset + 1)
+          offset += 3
+          if (nameType === 0x00 && offset + nameLen <= buffer.length) {
+            return buffer.slice(offset, offset + nameLen).toString('utf8')
+          }
+          offset += nameLen
+        }
+        return ''
+      }
+      offset += size
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
+
 function createRedirectHandler(request: http.IncomingMessage, response: http.ServerResponse) {
   const requested = extractRequestedDomain(request)
   const normalized = normalizeDomain(requested)
-  const matched = normalized && (blockedDomainSet.has(normalized) || Array.from(blockedDomainSet).some((domain) => normalized.endsWith(`.${domain}`)))
-
-  if (matched || requested) {
-    mainWindow?.webContents.send('blocker:site-hit', {
-      domain: normalized || requested,
-      at: Date.now(),
-      redirected: Boolean(currentRedirectUrl)
-    })
+  if (normalized) {
+    reportSiteHit(normalized, Boolean(currentRedirectUrl))
   }
 
-  response.writeHead(302, {
-    Location: currentRedirectUrl,
-    'Cache-Control': 'no-store'
-  })
-  response.end(`Redirecting to ${currentRedirectUrl}`)
+  if (currentRedirectUrl) {
+    response.writeHead(302, {
+      Location: currentRedirectUrl,
+      'Cache-Control': 'no-store'
+    })
+    response.end(`Redirecting to ${currentRedirectUrl}`)
+  } else {
+    response.writeHead(403, { 'Cache-Control': 'no-store' })
+    response.end('Blocked by Pixel Pomodoro')
+  }
 }
 
 async function startRedirectServer(redirectUrl: string) {
   currentRedirectUrl = normalizeRedirectUrl(redirectUrl)
 
-  if (redirectServer?.listening) {
-    return true
-  }
+  const httpReady = await ensureHttpServer()
+  const sniReady = await ensureSniServer()
+  return httpReady || sniReady
+}
+
+async function ensureHttpServer() {
+  if (redirectServer?.listening) return true
 
   redirectServer = http.createServer(createRedirectHandler)
 
@@ -124,7 +189,6 @@ async function startRedirectServer(redirectUrl: string) {
       resolve(false)
       return
     }
-
     let settled = false
     server.once('error', () => {
       if (settled) return
@@ -140,13 +204,58 @@ async function startRedirectServer(redirectUrl: string) {
   })
 }
 
+async function ensureSniServer() {
+  if (sniServer?.listening) return true
+
+  sniServer = net.createServer((socket) => {
+    socket.setTimeout(3000)
+    socket.once('data', (chunk) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      const sni = parseSniFromClientHello(buf)
+      if (sni) {
+        reportSiteHit(sni, false)
+      }
+      socket.end()
+    })
+    socket.on('timeout', () => socket.destroy())
+    socket.on('error', () => undefined)
+  })
+
+  return new Promise<boolean>((resolve) => {
+    const server = sniServer
+    if (!server) {
+      resolve(false)
+      return
+    }
+    let settled = false
+    server.once('error', () => {
+      if (settled) return
+      settled = true
+      sniServer = null
+      resolve(false)
+    })
+    server.listen(443, '127.0.0.1', () => {
+      if (settled) return
+      settled = true
+      resolve(true)
+    })
+  })
+}
+
 async function stopRedirectServer() {
-  const server = redirectServer
+  const httpServer = redirectServer
   redirectServer = null
+  if (httpServer?.listening) {
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()))
+  }
 
-  if (!server?.listening) return
+  const sni = sniServer
+  sniServer = null
+  if (sni?.listening) {
+    await new Promise<void>((resolve) => sni.close(() => resolve()))
+  }
 
-  await new Promise<void>((resolve) => server.close(() => resolve()))
+  recentDomainHits.clear()
 }
 
 async function applyHostBlock(payload: HostBlockPayload) {
@@ -161,19 +270,12 @@ async function applyHostBlock(payload: HostBlockPayload) {
     return { ok: true, entries: 0, hostsPath, redirectReady: false, redirectUrl: '' }
   }
 
-  const useRedirect = rawRedirect.length > 0
-  currentRedirectUrl = useRedirect ? normalizeRedirectUrl(rawRedirect) : ''
+  currentRedirectUrl = rawRedirect ? normalizeRedirectUrl(rawRedirect) : ''
 
-  let redirectReady = false
-  if (useRedirect) {
-    redirectReady = await startRedirectServer(currentRedirectUrl)
-    redirectEnabled = redirectReady
-  } else {
-    await stopRedirectServer()
-    redirectEnabled = false
-  }
+  const serverReady = await startRedirectServer(currentRedirectUrl)
+  redirectEnabled = serverReady
 
-  const target: '0.0.0.0' | '127.0.0.1' = redirectEnabled ? '127.0.0.1' : '0.0.0.0'
+  const target: '0.0.0.0' | '127.0.0.1' = serverReady ? '127.0.0.1' : '0.0.0.0'
   const { hosts, entries } = createHostEntries(domains, target)
   blockedDomainSet = new Set(hosts.map(normalizeDomain).filter(Boolean))
 
@@ -184,11 +286,11 @@ async function applyHostBlock(payload: HostBlockPayload) {
 
   const verifyContent = await fs.readFile(hostsPath, 'utf8')
   if (!verifyContent.includes(blockStart)) {
-    return { ok: false, entries: 0, hostsPath, redirectReady, redirectUrl: currentRedirectUrl, error: 'hosts 写入验证失败' }
+    return { ok: false, entries: 0, hostsPath, redirectReady: serverReady, redirectUrl: currentRedirectUrl, error: 'hosts 写入验证失败' }
   }
 
   await flushDns()
-  return { ok: true, entries: entries.length, hostsPath, redirectReady, redirectUrl: currentRedirectUrl }
+  return { ok: true, entries: entries.length, hostsPath, redirectReady: serverReady, redirectUrl: currentRedirectUrl }
 }
 
 async function clearHostBlock() {
