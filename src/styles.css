@@ -201,6 +201,18 @@ p {
 .inline-form {
   display: flex;
   gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.inline-form > input,
+.inline-form > select {
+  min-width: 0;
+  flex: 1 1 120px;
+}
+
+.inline-form > button {
+  flex: 0 0 auto;
 }
 
 .task-add-form {
@@ -344,8 +356,13 @@ p {
 
 .two-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 18px;
+  min-width: 0;
+}
+
+.two-columns > div {
+  min-width: 0;
 }
 
 .two-columns h3 {
@@ -376,6 +393,9 @@ p {
   border: 2px solid #e1c8b7;
   border-radius: 12px;
   background: #fffaf2;
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-all;
 }
 
 .mini-list input,
@@ -446,6 +466,8 @@ p {
   font-weight: 700;
   text-align: center;
   box-shadow: 3px 3px 0 rgba(91, 68, 58, 0.18);
+  min-width: 0;
+  word-break: break-word;
 }
 
 .file-picker:hover {
@@ -585,10 +607,13 @@ p {
   display: flex;
   gap: 10px;
   align-items: center;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .manual-app-input input {
-  flex: 1;
+  flex: 1 1 120px;
+  min-width: 0;
 }
 
 .manual-app-input button {
@@ -669,6 +694,12 @@ p {
   .content-grid,
   .two-columns,
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1280px) {
+  .block-card .two-columns {
     grid-template-columns: 1fr;
   }
 }
