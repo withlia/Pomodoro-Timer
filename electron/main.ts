@@ -171,8 +171,19 @@ async function killBlockedApps() {
 
   let killed = 0
   await Promise.allSettled(targets.map(async (processName) => {
-    await execFileAsync('taskkill', ['/F', '/IM', processName], { windowsHide: true })
-    killed += 1
+    try {
+      await execFileAsync('tasklist', ['/FI', `IMAGENAME eq ${processName}`, '/NH'], { windowsHide: true })
+        .then(({ stdout }) => {
+          if (!stdout.toLowerCase().includes(processName.toLowerCase())) {
+            throw new Error('not running')
+          }
+        })
+      await execFileAsync('taskkill', ['/F', '/IM', processName], { windowsHide: true })
+      killed += 1
+      mainWindow?.webContents.send('blocker:app-killed', { processName, at: Date.now() })
+    } catch {
+      // process not running or kill failed
+    }
   }))
   return { ok: true, killed, targets: targets.length }
 }

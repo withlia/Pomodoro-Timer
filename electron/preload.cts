@@ -8,5 +8,10 @@ contextBridge.exposeInMainWorld('pixelPomodoro', {
   applyHostBlock: (payload: unknown) => ipcRenderer.invoke('blocker:apply-hosts', payload),
   clearHostBlock: () => ipcRenderer.invoke('blocker:clear-hosts'),
   applyAppBlock: (processNames: unknown) => ipcRenderer.invoke('blocker:apply-apps', processNames),
-  clearAppBlock: () => ipcRenderer.invoke('blocker:clear-apps')
+  clearAppBlock: () => ipcRenderer.invoke('blocker:clear-apps'),
+  onAppKilled: (handler: (payload: { processName: string; at: number }) => void) => {
+    const listener = (_event: unknown, payload: { processName: string; at: number }) => handler(payload)
+    ipcRenderer.on('blocker:app-killed', listener)
+    return () => ipcRenderer.removeListener('blocker:app-killed', listener)
+  }
 })

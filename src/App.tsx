@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { BlockPanel } from './components/BlockPanel'
+import { BlockStatsPanel } from './components/BlockStatsPanel'
 import { SettingsPanel } from './components/SettingsPanel'
 import { StatsPanel } from './components/StatsPanel'
 import { TaskPanel } from './components/TaskPanel'
@@ -42,7 +43,6 @@ function App() {
     }
     window.pixelPomodoro.getPlatform().then(setPlatform).catch(() => setPlatform('browser'))
   }, [])
-
   useEffect(() => localStorage.setItem('settings', JSON.stringify(settings)), [settings])
   useEffect(() => localStorage.setItem('tasks', JSON.stringify(tasks)), [tasks])
   useEffect(() => localStorage.setItem('sessions', JSON.stringify(sessions)), [sessions])
@@ -281,6 +281,14 @@ function App() {
           addAppByName={addAppByName}
         />
         <StatsPanel tasks={tasks} />
+        <BlockStatsPanel
+          blockedSites={blockedSites}
+          blockedApps={blockedApps}
+          mode={mode}
+          isRunning={isRunning}
+          timeLeft={timeLeft}
+          focusTotalSeconds={getInitialSeconds('focus', settings)}
+        />
         <SettingsPanel settings={settings} updateSetting={updateSetting} />
       </section>
     </main>

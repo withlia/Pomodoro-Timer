@@ -21,8 +21,8 @@ export function TaskPanel(props: Props) {
           <p className="eyebrow">Quest Log</p>
           <h2>任务管理</h2>
         </div>
-        <div className="inline-form">
-          <input value={props.newTaskTitle} onChange={(event) => props.setNewTaskTitle(event.target.value)} placeholder="新任务" />
+        <div className="inline-form task-add-form">
+          <input className="task-title-input" value={props.newTaskTitle} onChange={(event) => props.setNewTaskTitle(event.target.value)} placeholder="新任务" />
           <input
             type="number"
             min={1}
@@ -30,7 +30,7 @@ export function TaskPanel(props: Props) {
             value={props.newTaskEstimate}
             onChange={(event) => props.setNewTaskEstimate(Math.max(1, Number(event.target.value) || 1))}
             title="预估番茄数"
-            style={{ width: '4rem' }}
+            className="task-estimate-input"
           />
           <button onClick={props.addTask}>添加</button>
         </div>
