@@ -2,6 +2,12 @@
 
 一个 Electron + React + TypeScript 打造的像素风番茄钟桌面应用，专注于「番茄工作法 + 强制屏蔽干扰」的一体化体验。
 
+## 下载 & 安装
+
+前往 [Releases](https://github.com/withlia/Pomodoro-Timer/releases/latest) 下载最新 Windows 安装包 `Pixel.Pomodoro.Setup.<version>.exe`，双击运行即可。
+
+> 首次运行需管理员权限，用于修改系统 `hosts` 文件与占用 80 / 443 端口实现网站屏蔽。卸载或退出时会自动清理。
+
 ## 功能
 
 ### 番茄钟
