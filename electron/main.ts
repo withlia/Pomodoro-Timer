@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Notification, dialog } from 'electron'
 import { execFile } from 'node:child_process'
 import fs from 'node:fs/promises'
+import fsSync from 'node:fs'
 import http from 'node:http'
 import net from 'node:net'
 import path from 'node:path'
@@ -325,13 +326,33 @@ function clearAppBlock() {
   return { ok: true }
 }
 
+function resolveIconPath() {
+  const candidates = isDev
+    ? [
+        path.join(__dirname, '../build/icon.ico'),
+        path.join(__dirname, '../build/icon.png')
+      ]
+    : [
+        path.join(process.resourcesPath, 'icon.ico'),
+        path.join(process.resourcesPath, 'icon.png'),
+        path.join(__dirname, '../build/icon.ico'),
+        path.join(__dirname, '../build/icon.png')
+      ]
+  for (const candidate of candidates) {
+    if (fsSync.existsSync(candidate)) return candidate
+  }
+  return undefined
+}
+
 function createWindow() {
+  const iconPath = resolveIconPath()
   mainWindow = new BrowserWindow({
     width: 1180,
     height: 760,
     minWidth: 960,
     minHeight: 640,
     backgroundColor: '#fff7ed',
+    ...(iconPath ? { icon: iconPath } : {}),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,

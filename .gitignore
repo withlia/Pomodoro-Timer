@@ -5,3 +5,4 @@ release/
 .build-cache/
 .env
 .DS_Store
+ChatGPT Image*.png
