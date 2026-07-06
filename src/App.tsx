@@ -104,14 +104,14 @@ function App() {
         ?.applyHostBlock({ domains })
         .then((result: { ok?: boolean; entries?: number; error?: string }) => {
           if (result.ok === false) {
-            setBlockerMessage(result.error || '写入 hosts 失败')
+            setBlockerMessage(result.error || '屏蔽启动失败')
           } else {
-            setBlockerMessage(`已屏蔽 ${result.entries} 条 hosts 规则`)
+            setBlockerMessage(`已屏蔽 ${result.entries} 个网站`)
           }
         })
         .catch((err: unknown) => {
           const msg = err instanceof Error ? err.message : String(err)
-          setBlockerMessage(`写入 hosts 失败: ${msg}`)
+          setBlockerMessage(`屏蔽启动失败: ${msg}`)
         })
     } else {
       window.pixelPomodoro?.clearHostBlock().catch(() => undefined)
@@ -160,7 +160,12 @@ function App() {
     setCompletedFocusCount(nextCount)
     setSessions((current) => [{ id: Date.now(), taskId: selectedTaskId, taskTitle, startedAt: new Date().toISOString(), minutes: settings.focusMinutes }, ...current])
     if (selectedTaskId) {
-      setTasks((current) => current.map((task) => task.id === selectedTaskId ? { ...task, completedPomodoros: task.completedPomodoros + 1, status: task.completedPomodoros + 1 >= task.estimatedPomodoros ? 'done' : 'doing' } : task))
+      setTasks((current) => current.map((task) => {
+        if (task.id !== selectedTaskId) return task
+        const nextCompleted = Math.min(task.completedPomodoros + 1, task.estimatedPomodoros)
+        const nextStatus = nextCompleted >= task.estimatedPomodoros ? 'done' : 'doing'
+        return { ...task, completedPomodoros: nextCompleted, status: nextStatus }
+      }))
     }
     window.pixelPomodoro?.notify({ title: '番茄完成', body: `${taskTitle} +1` })
     switchMode(nextCount % settings.longBreakInterval === 0 ? 'longBreak' : 'shortBreak', settings.autoStartBreak)

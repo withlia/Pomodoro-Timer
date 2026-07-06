@@ -8,11 +8,13 @@ declare global {
         hostBlockingReady: boolean
         appBlockingReady: boolean
         requiresAdmin: boolean
+        elevated: boolean
         hostsPath: string
       }>
-      applyHostBlock: (payload: { domains: string[] }) => Promise<{ ok: boolean; entries: number; hostsPath: string; redirectReady: boolean; redirectUrl: string }>
+      requestElevation: () => Promise<{ ok: boolean }>
+      applyHostBlock: (payload: { domains: string[] }) => Promise<{ ok: boolean; entries: number; hostsPath: string; error?: string; warning?: string }>
       clearHostBlock: () => Promise<{ ok: boolean; hostsPath: string }>
-      applyAppBlock: (processNames: string[]) => Promise<{ ok: boolean; targets: number }>
+      applyAppBlock: (processNames: string[]) => Promise<{ ok: boolean; targets: number; error?: string }>
       clearAppBlock: () => Promise<{ ok: boolean }>
       onAppKilled?: (handler: (payload: { processName: string; at: number }) => void) => () => void
       onSiteHit?: (handler: (payload: { domain: string; at: number; redirected: boolean }) => void) => () => void

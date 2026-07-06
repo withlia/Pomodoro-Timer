@@ -12,9 +12,6 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "vite": "latest",
-    "typescript": "latest",
     "react": "latest",
     "react-dom": "latest"
   },
@@ -22,21 +19,31 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
     "concurrently": "latest",
     "electron": "latest",
     "electron-builder": "latest",
+    "typescript": "latest",
+    "vite": "latest",
     "wait-on": "latest"
   },
   "build": {
     "appId": "com.pixelpomodoro.app",
     "productName": "Pixel Pomodoro",
+    "compression": "maximum",
+    "afterPack": "electron-builder-after-pack.cjs",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**",
       "dist-electron/**",
-      "package.json"
+      "package.json",
+      "!**/node_modules/**",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin"
     ],
     "extraResources": [
       {
@@ -48,10 +55,14 @@
         "to": "icon.png"
       }
     ],
+    "electronLanguages": [
+      "en-US",
+      "zh-CN"
+    ],
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
