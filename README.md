@@ -6,7 +6,7 @@
 
 前往 [Releases](https://github.com/withlia/Pomodoro-Timer/releases/latest) 下载最新 Windows 安装包 `Pixel.Pomodoro.Setup.<version>.exe`，双击运行即可。
 
-> 首次运行需管理员权限，用于修改系统 `hosts` 文件与占用 80 / 443 端口实现网站屏蔽。卸载或退出时会自动清理。
+> 无需管理员权限。网站屏蔽通过本地代理 + 系统代理设置实现，专注结束后自动恢复原有代理配置。
 
 ## 功能
 
@@ -21,14 +21,15 @@
 - 支持选中、删除
 
 ### 网站屏蔽（Windows）
-- 将启用的域名写入 `hosts`，指向 `127.0.0.1`
-- 本地起 `127.0.0.1:80` HTTP 服务返回 403 拦截 HTTP 请求
-- 本地起 `127.0.0.1:443` TCP 服务，手写解析 TLS ClientHello 的 SNI，从而在拦截 HTTPS 请求的同时拿到目标域名
-- 专注结束或退出应用时自动清理 hosts 段落 + `ipconfig /flushdns`
+- 专注开始时启动本地 HTTP/HTTPS 代理（`127.0.0.1:8878`）
+- 通过 `HKCU` 注册表设置 Windows 系统代理，Chrome / Edge / Firefox 等浏览器自动走代理
+- HTTP 请求按 `Host` 头匹配，HTTPS 请求按 `CONNECT` 目标匹配，命中屏蔽域名返回 403
+- 专注结束或退出应用时自动关闭代理并恢复用户原有代理设置
+- 无需修改 `hosts`、无需管理员权限，不会被杀软拦截
 
 ### 软件屏蔽（Windows）
 - 支持选择本地 `.exe` 或手动输入进程名
-- 专注期间每 3 秒 `tasklist` 检测目标进程，命中就 `taskkill /F`
+- 专注期间每 3 秒 `tasklist` 检测目标进程，命中就 `taskkill /F`（用户级进程无需管理员）
 
 ### 屏蔽实时统计
 - 「监控中 / 待机」状态徽章跟随番茄钟状态变化
@@ -48,7 +49,7 @@
 | --- | --- |
 | UI | React 18 · Vite · TypeScript |
 | 桌面 | Electron 43 · electron-builder |
-| 主进程 | Node HTTP · Node net (手写 TLS SNI 解析) · `execFile('tasklist' / 'taskkill' / 'ipconfig')` |
+| 主进程 | Node HTTP 代理 · `reg` 注册表操作 · `execFile('tasklist' / 'taskkill')` |
 | 通信 | contextBridge / ipcRenderer（`invoke` + `on`） |
 | 持久化 | `localStorage` |
 | 样式 | 手写 CSS，含明暗主题变量 |
@@ -57,7 +58,7 @@
 
 ```
 electron/
-  main.ts        Electron 主进程：窗口、hosts、80/443 服务、进程扫描、IPC
+  main.ts        Electron 主进程：窗口、本地代理、系统代理注册表、进程扫描、IPC
   preload.cts    contextBridge 暴露 window.pixelPomodoro API
 src/
   App.tsx        全局状态与面板编排
@@ -84,7 +85,7 @@ vite.config.ts
 
 ### 环境
 - Node.js 18+
-- Windows 建议以管理员权限运行（hosts 与 80/443 端口需要）
+- Windows（网站屏蔽依赖系统代理，软件屏蔽依赖 `tasklist` / `taskkill`）
 
 ### 安装
 
@@ -117,6 +118,18 @@ npm run dist         # 构建 + 打包（Windows NSIS 安装包到 release/）
 ```
 
 打包完成后可在 `release/` 目录找到安装包 `Pixel Pomodoro Setup <version>.exe`。
+
+### CI/CD
+
+推送到 `master` 时 GitHub Actions 自动构建并上传 artifact；推送 `v*` 标签时自动构建并发布 Release：
+
+```bash
+# 发新版
+git tag v0.3.0
+git push origin v0.3.0
+```
+
+构建配置见 `.github/workflows/build.yml`。
 
 ## License
 
