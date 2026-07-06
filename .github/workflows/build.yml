@@ -8,6 +8,9 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -31,23 +34,10 @@ jobs:
         run: npm run typecheck
 
       - name: Build & Package
-        run: npm run dist 2>&1 | Tee-Object -FilePath build-output.log
+        run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          DEBUG: electron-builder
-        continue-on-error: true
-
-      - name: Upload build log (for debugging)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-log
-          path: build-output.log
-
-      - name: Fail if build failed
-        if: failure()
-        run: exit 1
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
